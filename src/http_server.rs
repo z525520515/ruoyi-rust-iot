@@ -152,6 +152,8 @@ pub fn build_server(base_api: &'static str) -> Server {
                     .service(equipmentinstallation_controller::add)
                     .service(equipmentinstallation_controller::update)
                     .service(equipmentinstallation_controller::remove)
+                    .service(equipmentinstallation_controller::template_export)
+                    .service(equipmentinstallation_controller::import_excel)
             ).service(
                 web::scope("/wx")
                 .service(wx_controller::wecallback)

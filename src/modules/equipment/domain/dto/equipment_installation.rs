@@ -4,6 +4,48 @@ use rbatis::snowflake::new_snowflake_id;
 use rbatis::rbdc::datetime::DateTime;
 use rbatis::plugin::page::PageRequest;
 use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct EquipmentInstallationImportDTO {
+    pub equipment_number: Option<String>,
+    pub equipment_name: Option<String>,
+    pub equipment_type: Option<String>,
+    pub equipment_model_label: Option<String>,
+    pub equipment_status: Option<String>,
+    pub communication_means: Option<String>,
+    pub addr: Option<String>,
+    pub location_id: Option<String>,
+    pub lower_equipment: Option<String>,
+    pub project_num: Option<String>,
+}
+
+impl From<EquipmentInstallationImportDTO> for EquipmentInstallation {
+    fn from(arg: EquipmentInstallationImportDTO) -> Self {
+        Self {
+            id: Some(new_snowflake_id() as i64),
+            dept_id: None,
+            remark: None,
+            expand: None,
+            spare1: None,
+            equipment_number: arg.equipment_number,
+            equipment_name: arg.equipment_name,
+            installation_drawing: None,
+            equipment_type: arg.equipment_type,
+            dict_value: None,
+            equipment_model_label: arg.equipment_model_label,
+            equipment_status: arg.equipment_status,
+            communication_means: arg.communication_means,
+            addr: arg.addr,
+            location_id: arg.location_id,
+            lower_equipment: arg.lower_equipment,
+            project_num: arg.project_num,
+            create_by: None,
+            create_time: DateTime::now().into(),
+            update_by: None,
+            update_time: None,
+        }
+    }
+}
     
     
 /// page DTO

@@ -1,9 +1,12 @@
 // installation_controller
-use actix_web::{delete, get, post, put, web, HttpRequest, Responder};
+use std::io::Cursor;
+use actix_web::{delete, get, post, put, web, HttpRequest, HttpResponse, Responder};
+use actix_multipart::Multipart;
 use permit_lib::has_permit;
+use futures_util::stream::StreamExt;
 // 引用 数据表相关对象
 use crate::modules::equipment::domain::dto::equipment_installation::{
-    EquipmentInstallationAddDTO, EquipmentInstallationPageDTO, EquipmentInstallationUpdateDTO,
+    EquipmentInstallationAddDTO, EquipmentInstallationPageDTO, EquipmentInstallationUpdateDTO, EquipmentInstallationImportDTO,
 };
 use crate::modules::equipment::domain::table::tables::EquipmentInstallation;
 use crate::modules::system::domain::vo::{PageVO, RespVO};
@@ -16,6 +19,69 @@ use crate::modules::system::service::{ServiceContext, CONTEXT};
 pub async fn page(query: web::Query<EquipmentInstallationPageDTO>) -> impl Responder {
     let data = CONTEXT.equipment_installation_service.page(&query).await;
     PageVO::from_result(&data).resp_json()
+}
+// Excel模板导出
+#[get("/export")]
+// #[has_permit("equipment:installation:query")]
+pub async fn template_export() -> impl Responder {
+    let data = CONTEXT
+        .equipment_installation_service
+        .export_template()
+        .await;
+    match data {
+        Ok(bytes) => {
+            HttpResponse::Ok()
+                .content_type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .append_header(("Content-Disposition", "attachment; filename=equipment_installation_template.xlsx"))
+                .body(bytes)
+        }
+        Err(e) => {
+            RespVO::<u64>::from_error_info(500, &format!("导出模板失败: {}", e)).resp_json()
+        }
+    }
+}
+// Excel导入
+#[post("/import")]
+// #[has_permit("equipment:installation:add")]
+pub async fn import_excel(mut payload: Multipart) -> impl Responder {
+    let mut import_list: Vec<()> = Vec::new();
+    
+    while let Some(item) = payload.next().await {
+        let mut field = match item {
+            Ok(f) => f,
+            Err(e) => {
+                return RespVO::<u64>::from_error_info(400, &format!("读取表单失败: {}", e)).resp_json();
+            }
+        };
+
+        if field.name() == Some("file") {
+            let mut bytes = Vec::new();
+            while let Some(chunk) = field.next().await {
+                let chunk = match chunk {
+                    Ok(c) => c,
+                    Err(e) => {
+                        return RespVO::<u64>::from_error_info(400, &format!("读取文件失败: {}", e)).resp_json();
+                    }
+                };
+                bytes.extend_from_slice(&chunk);
+            }
+
+            if bytes.is_empty() {
+                return RespVO::<u64>::from_error_info(400, "上传文件为空").resp_json();
+            }
+
+            match CONTEXT.equipment_installation_service.import_excel(&bytes).await {
+                Ok(count) => {
+                    return RespVO::<u64>::judge(1, format!("成功导入 {} 条数据", count), "导入失败".to_string()).resp_json();
+                }
+                Err(e) => {
+                    return RespVO::<u64>::from_error_info(500, &format!("导入失败: {}", e)).resp_json();
+                }
+            }
+        }
+    }
+
+    RespVO::<u64>::from_error_info(400, "未找到上传文件").resp_json()
 }
 // 根据id返回一条
 #[get("/installation/{id}")]
