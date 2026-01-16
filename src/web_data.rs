@@ -4,9 +4,6 @@ use std::cell::RefCell;
 //线程安全的变量，方便会话调用
 thread_local!(static USERNAME: RefCell<String> = RefCell::new("".to_string()));
 
-
-
-
 pub fn set_user_name(user_name: String) {
     USERNAME.with(|f| {
         *f.borrow_mut() = user_name;
@@ -21,6 +18,3 @@ pub fn get_user_name() -> String {
     });
     user_name
 }
-
-
-

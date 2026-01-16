@@ -65,7 +65,3 @@ mqtt:
   password: "CHANGE_ME"
   keep_alive: 30
   clean_session: true
-
-
-
-

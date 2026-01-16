@@ -1,16 +1,20 @@
-use std::collections::{BTreeMap};
-use rbs::to_value;
-use crate::config::global_variables::{CHAR_FALSE, INNER_LINK, LAYOUT, PARENT_VIEW, TYPE_DIR, TYPE_MENU, ADMIN_NAME};
+use crate::config::global_variables::{
+    ADMIN_NAME, CHAR_FALSE, INNER_LINK, LAYOUT, PARENT_VIEW, TYPE_DIR, TYPE_MENU,
+};
 use crate::modules::system::domain::dto::menu::MenuPageDTO;
+use rbs::to_value;
+use std::collections::BTreeMap;
 
-use crate::modules::system::domain::table::SysMenu;
-use crate::modules::system::domain::vo::{MenuTreeSelectVO, MetaVO, RouterVO, SysMenuVO, UserCache};
 use crate::error::Error;
 use crate::error::Result;
-use crate::pool;
+use crate::modules::system::domain::table::SysMenu;
+use crate::modules::system::domain::vo::{
+    MenuTreeSelectVO, MetaVO, RouterVO, SysMenuVO, UserCache,
+};
 use crate::modules::system::service::CONTEXT;
+use crate::pool;
 use crate::util::string::capitalize;
-use rbs::{value};
+use rbs::value;
 const RES_MENU_KEY: &'static str = "sys_menu:all";
 
 /// Menu service
@@ -18,7 +22,11 @@ pub struct SysMenuService {}
 
 impl SysMenuService {
     pub async fn query_menu(&self, query: &MenuPageDTO) -> Result<Vec<SysMenuVO>> {
-        let res: Vec<SysMenuVO> = SysMenu::query_menu(pool!(), query).await?.into_iter().map(|m| SysMenuVO::from(m)).collect();
+        let res: Vec<SysMenuVO> = SysMenu::query_menu(pool!(), query)
+            .await?
+            .into_iter()
+            .map(|m| SysMenuVO::from(m))
+            .collect();
         Ok(res)
     }
     /// Find the menu array
@@ -48,12 +56,12 @@ impl SysMenuService {
 
     ///menu details
     pub async fn detail(&self, menu_id: &str) -> Result<SysMenuVO> {
-
         let menuid: u64 = menu_id.parse().unwrap();
-        let menu = SysMenu::select_by_map(pool!(), value! {"menu_id":menuid}) 
+        let menu = SysMenu::select_by_map(pool!(), value! {"menu_id":menuid})
             .await?
             .into_iter()
-            .next().ok_or_else(|| Error::from(format!("不存在:{:?} 不存在！", menu_id)))?;
+            .next()
+            .ok_or_else(|| Error::from(format!("不存在:{:?} 不存在！", menu_id)))?;
         let menu_vo = SysMenuVO::from(menu);
         return Ok(menu_vo);
     }
@@ -64,8 +72,13 @@ impl SysMenuService {
     }
 
     pub async fn update(&self, arg: &SysMenu) -> Result<u64> {
-        let result = SysMenu::update_by_map(pool!(), &arg, value! {"menu_id":
-            arg.menu_id.unwrap_or_default()}).await?;
+        let result = SysMenu::update_by_map(
+            pool!(),
+            &arg,
+            value! {"menu_id":
+            arg.menu_id.unwrap_or_default()},
+        )
+        .await?;
         self.update_cache().await?;
         return Ok(result.rows_affected);
     }
@@ -133,10 +146,9 @@ impl SysMenuService {
     //     ids
     // }
 
-
     pub async fn update_cache(&self) -> Result<Vec<SysMenuVO>> {
         let all = SysMenu::select_all_order_num(pool!()).await?;
-        
+
         CONTEXT.cache_service.set_json(RES_MENU_KEY, &all).await?;
         let mut v = vec![];
         for x in all {
@@ -171,7 +183,6 @@ impl SysMenuService {
         }
         res
     }
-
 
     //变成id 和label
     pub fn tree_select(&self, menus: Vec<SysMenuVO>) -> Result<Vec<MenuTreeSelectVO>> {
@@ -249,7 +260,9 @@ impl SysMenuService {
         let mut routers = vec![];
         for menu in menus {
             let menu_type = menu.menu_type.clone().unwrap_or_default();
-            if menu_type != TYPE_DIR && menu_type != TYPE_MENU { continue; }
+            if menu_type != TYPE_DIR && menu_type != TYPE_MENU {
+                continue;
+            }
             let mut router = RouterVO {
                 name: Some(self.get_route_name(&menu)),
                 path: Some(self.get_router_path(&menu)),
@@ -263,7 +276,8 @@ impl SysMenuService {
                     icon: menu.icon.clone(),
                     no_cache: Some(menu.is_cache.unwrap() == CHAR_FALSE),
                     link: None,
-                }.into(),
+                }
+                .into(),
                 children: vec![],
             };
             let c_menus = menu.children.clone().unwrap();
@@ -274,7 +288,7 @@ impl SysMenuService {
             } else if menu.is_menu_frame() {
                 let mut children_list = vec![];
                 let children = RouterVO {
-                    name: Some(capitalize(&menu.path.clone().unwrap())),//大写
+                    name: Some(capitalize(&menu.path.clone().unwrap())), //大写
                     path: menu.path.clone(),
                     hidden: Some(false),
                     redirect: None,
@@ -286,7 +300,8 @@ impl SysMenuService {
                         icon: menu.icon.clone(),
                         no_cache: Some(menu.is_cache.clone().unwrap() == CHAR_FALSE),
                         link: menu.path.clone(),
-                    }.into(),
+                    }
+                    .into(),
                     children: vec![],
                 };
                 children_list.push(children);
@@ -297,11 +312,12 @@ impl SysMenuService {
                     icon: menu.icon.clone(),
                     no_cache: Some(false),
                     link: None,
-                }.into();
+                }
+                .into();
                 router.path = Some("/".to_string());
                 let mut children_list = vec![];
                 let children = RouterVO {
-                    name: Some(capitalize(&menu.path.clone().unwrap())),//大写
+                    name: Some(capitalize(&menu.path.clone().unwrap())), //大写
                     path: menu.path.clone(),
                     hidden: Some(false),
                     redirect: None,
@@ -313,7 +329,8 @@ impl SysMenuService {
                         icon: menu.icon.clone(),
                         no_cache: Some(true),
                         link: menu.path.clone(),
-                    }.into(),
+                    }
+                    .into(),
                     children: vec![],
                 };
                 children_list.push(children);
@@ -351,8 +368,10 @@ impl SysMenuService {
         }
         // 非外链并且是一级目录（类型为目录）
 
-        if menu.is_parent() && menu.menu_type.clone().unwrap() == TYPE_DIR
-            && menu.is_frame.unwrap() == CHAR_FALSE {
+        if menu.is_parent()
+            && menu.menu_type.clone().unwrap() == TYPE_DIR
+            && menu.is_frame.unwrap() == CHAR_FALSE
+        {
             router_path = "/".to_string() + &router_path;
         }
         // 非外链并且是一级目录（类型为菜单）
@@ -372,11 +391,9 @@ impl SysMenuService {
         let mut component = LAYOUT;
         if old_component.len() > 0 && !menu.is_menu_frame() {
             component = menu.component.as_ref().unwrap();
-        } else if old_component.len() == 0 && !menu.is_parent() && menu.is_inner_link()
-        {
+        } else if old_component.len() == 0 && !menu.is_parent() && menu.is_inner_link() {
             component = INNER_LINK;
-        } else if old_component.len() == 0 && menu.is_parent_view()
-        {
+        } else if old_component.len() == 0 && menu.is_parent_view() {
             component = PARENT_VIEW;
         }
         component.to_string()

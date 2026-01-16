@@ -24,6 +24,7 @@ use once_cell::sync::Lazy;
 use rbdc_pg::driver::PgDriver;
 // use rbatis::rbatis::Rbatis;
 // use rbdc_mysql::driver::MysqlDriver;
+use super::super::equipment::service::equipmentinstallation_service::EquipmentInstallationService;
 pub use redis_service::*;
 pub use sys_config_service::*;
 pub use sys_dept_service::*;
@@ -80,6 +81,7 @@ pub struct ServiceContext {
     pub sys_post_service: SysPostService,
     pub sys_notice_service: SysNoticeService,
     pub char_array: [char; 52],
+    pub equipment_installation_service: EquipmentInstallationService,
 }
 
 impl ServiceContext {
@@ -163,6 +165,7 @@ impl Default for ServiceContext {
             sys_post_service: SysPostService {},
             sys_notice_service: SysNoticeService {},
             char_array: char_array2,
+            equipment_installation_service: EquipmentInstallationService {},
         }
     }
 }
