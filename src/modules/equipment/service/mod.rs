@@ -1,0 +1,1 @@
+pub mod equipmentinstallation_service;

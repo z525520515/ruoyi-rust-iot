@@ -1,0 +1,5 @@
+modify file src\modules\system\service\mod.rs
+add use------------
+pub use crate::modules::equipment::service::equipmentinstallation_service::EquipmentInstallationService;
+into ServiceContext property------------
+pub equipment_installation_service: EquipmentInstallationService,
