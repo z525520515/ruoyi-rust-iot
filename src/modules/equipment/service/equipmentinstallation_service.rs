@@ -44,17 +44,22 @@ impl EquipmentInstallationService {
     }
     // 调用表实体对象 EquipmentInstallation select_by_map ,根据id返回 EquipmentInstallationVo
     pub async fn detail(&self, id: &str) -> Result<EquipmentInstallationVo> {
+        // 1. 把 &str 解析成 i64，失败就返回一个业务错误
+        let id_num: i64 = id.parse()
+            .map_err(|_| Error::from(format!("id 必须是纯数字: {}", id)))?;
+
+        // 2. 构造查询参数，此时 Value 是 Number，不再是 String
         let row = EquipmentInstallation::select_by_map(
             pool!(),
-            value! {
-            "id":  id },
+            value! { "id": id_num },   // 关键：这里传数字
         )
-        .await?
-        .into_iter()
-        .next()
-        .ok_or_else(|| Error::from(format!("不存在 {:?} 不存在！", id)))?;
+            .await?
+            .into_iter()
+            .next()
+            .ok_or_else(|| Error::from(format!("不存在 {:?} ！", id)))?;
+
         let row_vo = EquipmentInstallationVo::from(row);
-        return Ok(row_vo);
+        Ok(row_vo)
     }
     //  add 方法 , EquipmentInstallation::insert
     pub async fn add(&self, arg: &EquipmentInstallation) -> Result<u64> {
@@ -84,8 +89,10 @@ impl EquipmentInstallationService {
     }
     //  remove 方法 , EquipmentInstallation::delete_by_column 并且调用sys_trash_service.add 保存到回收站表
     pub async fn remove(&self, id: &str) -> Result<u64> {
-        let targets = EquipmentInstallation::select_by_map(pool!(), value! {"id":  id }).await?;
-        let r = EquipmentInstallation::delete_by_map(pool!(), value! {"id":  id }).await?;
+        let id_num: i64 = id.parse()
+            .map_err(|_| Error::from(format!("id 必须是纯数字: {}", id)))?;
+        let targets = EquipmentInstallation::select_by_map(pool!(), value! {"id":  id_num }).await?;
+        let r = EquipmentInstallation::delete_by_map(pool!(), value! {"id":  id_num }).await?;
         if r.rows_affected > 0 {
             //copy data to trash
             CONTEXT

@@ -14,7 +14,7 @@ cache_type: "redis"
 web_redis_url: "redis://:CHANGE_ME@127.0.0.1:6379"
 
 #后台用数据库地址
-database_url: "postgres://postgres:postgres@127.0.0.1:5432/iot_core"
+database_url: "postgresql://postgres:CHANGE_ME@127.0.0.1:5432/iot_core?schema=public"
 #逻辑删除-字段
 logic_column: "del"
 #逻辑删除-未删除标志

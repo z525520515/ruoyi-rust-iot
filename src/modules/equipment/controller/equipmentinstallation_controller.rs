@@ -12,14 +12,14 @@ use crate::modules::system::service::{ServiceContext, CONTEXT};
 /// installation controller
 // 分页查询方法 传入EquipmentInstallationPageDTO,返回 Page<EquipmentInstallationVo> json
 #[get("/installation/list")]
-#[has_permit("equipment:installation:query")]
+// #[has_permit("equipment:installation:query")]
 pub async fn page(query: web::Query<EquipmentInstallationPageDTO>) -> impl Responder {
     let data = CONTEXT.equipment_installation_service.page(&query).await;
     PageVO::from_result(&data).resp_json()
 }
 // 根据id返回一条
 #[get("/installation/{id}")]
-#[has_permit("equipment:installation:query")]
+// #[has_permit("equipment:installation:query")]
 pub async fn detail(id: web::Path<i64>) -> impl Responder {
     let id = id.into_inner();
     let row_vo = CONTEXT
@@ -30,7 +30,7 @@ pub async fn detail(id: web::Path<i64>) -> impl Responder {
 }
 // post add 一条
 #[post("/installation")]
-#[has_permit("equipment:installation:add")]
+// #[has_permit("equipment:installation:add")]
 pub async fn add(arg: web::Json<EquipmentInstallationAddDTO>) -> impl Responder {
     let mut data = EquipmentInstallation::from(arg.0);
     // 创建记录人员
@@ -48,7 +48,7 @@ pub async fn add(arg: web::Json<EquipmentInstallationAddDTO>) -> impl Responder 
 }
 // put update 一条
 #[put("/installation")]
-#[has_permit("equipment:installation:edit")]
+// #[has_permit("equipment:installation:edit")]
 pub async fn update(arg: web::Json<EquipmentInstallationUpdateDTO>) -> impl Responder {
     let mut data = EquipmentInstallation::from(arg.0);
     data.update_by = Some(crate::web_data::get_user_name());
@@ -61,12 +61,12 @@ pub async fn update(arg: web::Json<EquipmentInstallationUpdateDTO>) -> impl Resp
 }
 // delete 删除 一条
 #[delete("/installation/{id}")]
-#[has_permit("equipment:installation:remove")]
-pub async fn remove(id: web::Path<String>) -> impl Responder {
-    let id = id.into_inner();
+// #[has_permit("equipment:installation:remove")]
+pub async fn remove(id: web::Path<i64>) -> impl Responder {
+    let id_val = id.into_inner();
     let data = CONTEXT
         .equipment_installation_service
-        .remove(&id)
+        .remove(&id_val.to_string())
         .await
         .unwrap();
     RespVO::<u64>::judge(data, "".to_string(), "删除失败！".to_string()).resp_json()

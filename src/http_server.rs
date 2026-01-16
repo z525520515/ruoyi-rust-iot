@@ -12,6 +12,7 @@ use crate::modules::system::controller::system_websocket;    //websocket控制�
 use crate::modules::system::controller::monitor::{server_controller, sys_logininfor_controller, sys_user_online_controller};
 use crate::modules::system::controller::wx::{wx_controller};
 use crate::modules::system::domain::vo::RespVO;
+use crate::modules::equipment::controller::{equipmentinstallation_controller};
 
 // #[get("/")]
 // async fn index() -> impl Responder {
@@ -144,6 +145,13 @@ pub fn build_server(base_api: &'static str) -> Server {
                     .service(sys_user_online_controller::force_logout)
 
                     .service(server_controller::server_info)
+            ).service(
+                web::scope("/equipment")
+                    .service(equipmentinstallation_controller::page)
+                    .service(equipmentinstallation_controller::detail)
+                    .service(equipmentinstallation_controller::add)
+                    .service(equipmentinstallation_controller::update)
+                    .service(equipmentinstallation_controller::remove)
             ).service(
                 web::scope("/wx")
                 .service(wx_controller::wecallback)

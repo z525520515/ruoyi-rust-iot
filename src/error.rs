@@ -63,7 +63,7 @@ impl From<&dyn std::error::Error> for Error {
 
 impl From<Error> for std::io::Error {
     fn from(arg: Error) -> Self {
-        arg.into()
+        std::io::Error::new(std::io::ErrorKind::Other, arg.to_string())
     }
 }
 
