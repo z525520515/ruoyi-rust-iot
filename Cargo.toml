@@ -77,7 +77,9 @@ anyhow = "1.0.100"
 rumqttc = "0.25.1"
 # actix-web-actors = "4.3.1"
 umya-spreadsheet = "1.1"
-bytes = "1"
+
+netcore = { path = "./src/netcore" }
+
 [profile.release]
 lto = true
 opt-level = 'z'
