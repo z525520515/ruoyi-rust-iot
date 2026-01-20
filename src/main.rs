@@ -1,6 +1,8 @@
 use backend::modules::system::service::CONTEXT;
 use backend::http_server;
-use backend::util::mqtt::MqttManager; // 添加这行导入
+use backend::util::mqtt::MqttManager;
+use netcore::transport::Bootstrap;
+use netcore::error::Result;
 
 #[allow(dead_code)]
 #[allow(unused_variables)]
@@ -22,6 +24,21 @@ async fn main() -> std::io::Result<()> {
     //dbg!("init sys_config data ok! 33");
     CONTEXT.sys_menu_service.update_cache().await?;
     //dbg!("init sys_menu data ok! 44");
+
+    // 启动 TCP 服务器
+    tokio::spawn(async {
+        if let Err(e) = start_tcp_server().await {
+            eprintln!("TCP Server error: {}", e);
+        }
+    });
+
     http_server::build_server(&CONTEXT.config.base_api).await
 
+}
+
+async fn start_tcp_server() -> Result<()> {
+    let bootstrap = Bootstrap::new();
+    let listener = bootstrap.bind("0.0.0.0:8080").await?;
+    println!("TCP Server listening on 127.0.0.1:8080");
+    bootstrap.start(listener).await
 }
