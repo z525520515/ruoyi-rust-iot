@@ -1,0 +1,5 @@
+modify file src\modules\system\service\mod.rs
+add use------------
+pub use crate::modules::equipment_data::service::equipmentdaum_service::EquipmentDaumService;
+into ServiceContext property------------
+pub equipment_data_service: EquipmentDaumService,

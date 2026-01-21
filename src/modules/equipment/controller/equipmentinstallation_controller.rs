@@ -11,6 +11,7 @@ use crate::modules::equipment::domain::dto::equipment_installation::{
 use crate::modules::equipment::domain::table::tables::EquipmentInstallation;
 use crate::modules::system::domain::vo::{PageVO, RespVO};
 use crate::modules::system::service::{ServiceContext, CONTEXT};
+use crate::modules::equipment_data::domain::dto::equipment_data::EquipmentDaumPageDTO;
 
 /// installation controller
 // 分页查询方法 传入EquipmentInstallationPageDTO,返回 Page<EquipmentInstallationVo> json
@@ -136,4 +137,10 @@ pub async fn remove(id: web::Path<i64>) -> impl Responder {
         .await
         .unwrap();
     RespVO::<u64>::judge(data, "".to_string(), "删除失败！".to_string()).resp_json()
+}
+#[get("/status/list")]
+// #[has_permit("equipment:installation:query")]
+pub async fn status_list(query: web::Query<EquipmentDaumPageDTO>) -> impl Responder {
+    let data = CONTEXT.equipment_installation_service.get_status_by_sql(&query).await;
+    PageVO::from_result(&data).resp_json()
 }

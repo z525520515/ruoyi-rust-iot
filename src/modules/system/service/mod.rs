@@ -42,6 +42,8 @@ pub use sys_user_role_service::*;
 pub use sys_user_service::*;
 
 use chrono::{Datelike, Local};
+use crate::modules::equipment_data::service::equipmentdaum_service::EquipmentDaumService;
+
 /// CONTEXT is all of the service struct
 pub static CONTEXT: Lazy<ServiceContext> = Lazy::new(|| ServiceContext::default());
 
@@ -82,6 +84,7 @@ pub struct ServiceContext {
     pub sys_notice_service: SysNoticeService,
     pub char_array: [char; 52],
     pub equipment_installation_service: EquipmentInstallationService,
+    pub equipment_daum_service: EquipmentDaumService ,
 }
 
 impl ServiceContext {
@@ -166,6 +169,7 @@ impl Default for ServiceContext {
             sys_notice_service: SysNoticeService {},
             char_array: char_array2,
             equipment_installation_service: EquipmentInstallationService {},
+            equipment_daum_service: EquipmentDaumService {},
         }
     }
 }

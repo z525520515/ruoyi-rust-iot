@@ -13,6 +13,7 @@ use crate::modules::system::controller::monitor::{server_controller, sys_loginin
 use crate::modules::system::controller::wx::{wx_controller};
 use crate::modules::system::domain::vo::RespVO;
 use crate::modules::equipment::controller::{equipmentinstallation_controller};
+use crate::modules::equipment_data::controller::equipmentdaum_controller;
 
 // #[get("/")]
 // async fn index() -> impl Responder {
@@ -154,7 +155,17 @@ pub fn build_server(base_api: &'static str) -> Server {
                     .service(equipmentinstallation_controller::remove)
                     .service(equipmentinstallation_controller::template_export)
                     .service(equipmentinstallation_controller::import_excel)
+                    .service(equipmentinstallation_controller::status_list)
             ).service(
+                web::scope("/equipment_data")
+                    .service(equipmentdaum_controller::page)
+                    .service(equipmentdaum_controller::detail)
+                    .service(equipmentdaum_controller::add)
+                    .service(equipmentdaum_controller::update)
+                    .service(equipmentdaum_controller::remove)
+                    .service(equipmentdaum_controller::stats)
+            )
+                .service(
                 web::scope("/wx")
                 .service(wx_controller::wecallback)
             // ).service(

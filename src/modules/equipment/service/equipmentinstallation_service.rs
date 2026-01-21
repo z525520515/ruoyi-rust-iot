@@ -7,7 +7,9 @@ use crate::modules::equipment::domain::dto::equipment_installation::{
 use crate::modules::equipment::domain::table::tables::EquipmentInstallation;
 use crate::modules::equipment::domain::vo::equipmentinstallationvo::EquipmentInstallationVo;
 use crate::modules::system::service::CONTEXT;
-//
+use crate::modules::equipment_data::domain::table::tables::EquipmentData;
+use crate::modules::equipment_data::domain::vo::equipmentdaumvo::EquipmentDaumVo;
+use crate::modules::equipment_data::domain::dto::equipment_data::EquipmentDaumPageDTO;
 use crate::error::Error;
 use crate::error::Result;
 // pool 数据库
@@ -194,5 +196,31 @@ impl EquipmentInstallationService {
         }
 
         Ok(imported_count)
+    }
+    pub async fn get_status_by_sql(&self, arg: &EquipmentDaumPageDTO) -> Result<Page<EquipmentDaumVo>> {
+        let rb = pool!();
+        let page_req = PageRequest::from(arg);
+        let mut count_sql = "SELECT count(1) FROM view_device_status WHERE 1=1".to_string();let mut data_sql = "SELECT * FROM view_device_status WHERE 1=1".to_string();
+        let mut wheres = String::new();
+        if let Some(num) = &arg.equipment_number {
+            if !num.is_empty() {
+                wheres.push_str(&format!(" AND equipment_number LIKE '%{}%'", num));
+            }
+        }
+        if let Some(state) = &arg.online_state {
+            if !state.is_empty() {
+                wheres.push_str(&format!(" AND online_state_calc = '{}'", state));
+            }
+        }
+        count_sql.push_str(&wheres);
+        data_sql.push_str(&wheres);
+        data_sql.push_str(" ORDER BY update_time DESC");
+        data_sql.push_str(&format!(" LIMIT {} OFFSET {}", page_req.page_size, (page_req.page_no - 1) * page_req.page_size));
+        let total: u64 = rb.query_decode(&count_sql, vec![]).await?;
+        let rows: Vec<EquipmentData> = rb.query_decode(&data_sql, vec![]).await?;
+        let mut page = Page::new_total(page_req.page_no, page_req.page_size, total);
+        page.records = rows.into_iter().map(EquipmentDaumVo::from).collect();
+
+        Ok(page)
     }
 }
