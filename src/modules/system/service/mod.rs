@@ -43,6 +43,7 @@ pub use sys_user_service::*;
 
 use chrono::{Datelike, Local};
 use crate::modules::equipment_data::service::equipmentdaum_service::EquipmentDaumService;
+use crate::util::mqtt::MqttManager;
 
 /// CONTEXT is all of the service struct
 pub static CONTEXT: Lazy<ServiceContext> = Lazy::new(|| ServiceContext::default());
@@ -85,6 +86,7 @@ pub struct ServiceContext {
     pub char_array: [char; 52],
     pub equipment_installation_service: EquipmentInstallationService,
     pub equipment_daum_service: EquipmentDaumService ,
+    pub mqtt_manager: Option<MqttManager>,
 }
 
 impl ServiceContext {
@@ -170,6 +172,7 @@ impl Default for ServiceContext {
             char_array: char_array2,
             equipment_installation_service: EquipmentInstallationService {},
             equipment_daum_service: EquipmentDaumService {},
+            mqtt_manager: None,
         }
     }
 }
