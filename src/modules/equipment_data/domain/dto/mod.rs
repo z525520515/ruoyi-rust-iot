@@ -1,2 +1,2 @@
 pub mod equipment_data;
-mod device_status;
+pub mod device_status;

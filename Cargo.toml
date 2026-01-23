@@ -79,7 +79,10 @@ rumqttc = "0.25.1"
 umya-spreadsheet = "1.1"
 
 netcore = { path = "./src/netcore" }
-
+axum = "0.7"
+dashmap = "5.5"
+env_logger = "0.10"
+urlencoding = "2.1"
 [profile.release]
 lto = true
 opt-level = 'z'
