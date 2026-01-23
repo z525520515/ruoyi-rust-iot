@@ -11,6 +11,7 @@ pub struct GatewayInvokeVO {
     pub action: String,
     pub method: String,
     pub params: Value,
+    pub stack_name: String,
 }
 
 #[post("/gateway/invoke")]
@@ -21,7 +22,7 @@ pub async fn gateway_invoke(req: web::Json<GatewayInvokeVO>) -> impl Responder {
         let result = manager.gateway_invoke(
             &vo.device_hash,
             &vo.protocol_type,
-            "ReservedControlProtocolStack",
+            &vo.stack_name,
             &vo.action,
             &vo.method,
             vo.params

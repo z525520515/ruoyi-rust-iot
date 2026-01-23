@@ -78,9 +78,6 @@ impl MqttManager {
         Ok(())
     }
 
-    // ================== 新增方法 1: 供 HTTP 调用的封装方法 ==================
-
-    /// 封装网关协议并同步等待结果
     pub async fn gateway_invoke(
         &self,
         device_hash: &str,    // README 中的 deviceUniqueIDHash (Base64)
@@ -131,14 +128,8 @@ impl MqttManager {
             }
         }
     }
-
-    // ================== 新增方法 2: 修改后的处理函数 ==================
-
-    /// 处理收到的原始消息，并尝试唤醒等待的 HTTP 请求
     fn handle_raw_message(publish: Publish) {
         let payload_bytes = &publish.payload;
-
-        // 尝试解析 [Header, Result] 数组
         if let Ok(Value::Array(arr)) = serde_json::from_slice::<Value>(payload_bytes) {
             if arr.len() >= 2 {
                 // 提取 Header 中的 transaction_id
@@ -146,14 +137,12 @@ impl MqttManager {
                     // 检查是否有对应的 HTTP 请求在等待
                     if let Some((_, tx)) = PENDING_REQUESTS.remove(&tid) {
                         info!("🎯 匹配到网关响应: tid={}", tid);
-                        let _ = tx.send(arr[1].clone()); // 发送 Result 部分
+                        let _ = tx.send(arr[1].clone());
                         return;
                     }
                 }
             }
         }
-
-        // 如果没有匹配到，则走普通日志逻辑
         let payload_str = String::from_utf8_lossy(payload_bytes);
         info!("📩 收到普通 MQTT 消息: Topic={}, Payload={}", publish.topic, payload_str);
     }
