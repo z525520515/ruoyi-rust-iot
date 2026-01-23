@@ -1,8 +1,8 @@
-use backend::http_server;
 use backend::modules::system::service::CONTEXT;
+use backend::http_server;
 use backend::util::mqtt::MqttManager;
-use netcore::error::Result;
 use netcore::transport::Bootstrap;
+use netcore::error::Result;
 
 #[allow(dead_code)]
 #[allow(unused_variables)]
@@ -32,7 +32,8 @@ async fn main() -> std::io::Result<()> {
         }
     });
 
-    http_server::build_server(&CONTEXT.config.base_api, mqtt_manager).await
+    http_server::build_server(&CONTEXT.config.base_api).await
+
 }
 
 async fn start_tcp_server() -> Result<()> {
