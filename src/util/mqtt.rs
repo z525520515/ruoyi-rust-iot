@@ -1,19 +1,20 @@
 use anyhow::Result;
-use log::{error, info};
-use rumqttc::{AsyncClient, Event, MqttOptions, Packet, Publish, QoS};
-use std::time::Duration;
-use tokio::time::{sleep, timeout};
-use std::sync::Arc;
 use dashmap::DashMap;
-use tokio::sync::oneshot;
-use serde_json::{json, Value};
+use log::{error, info};
 use once_cell::sync::Lazy;
+use rumqttc::{AsyncClient, Event, MqttOptions, Packet, Publish, QoS};
+use serde_json::{json, Value};
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::oneshot;
+use tokio::time::{sleep, timeout};
 
 use crate::config::config::MqttConfig;
 
 pub static PENDING_REQUESTS: Lazy<DashMap<i64, oneshot::Sender<Value>>> = Lazy::new(DashMap::new);
 
 // ========== MQTT 公共管理类 ==========
+#[derive(Clone)]
 pub struct MqttManager {
     pub client: AsyncClient,
 }
@@ -29,7 +30,9 @@ impl MqttManager {
         }
 
         let (client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
-        let manager = Self { client: client.clone() };
+        let manager = Self {
+            client: client.clone(),
+        };
 
         // 启动后台事件监听线程
         tokio::spawn(async move {
@@ -105,7 +108,8 @@ impl MqttManager {
         let (tx, rx) = oneshot::channel();
         PENDING_REQUESTS.insert(tid, tx);
 
-        self.publish(&topic, payload_bytes, QoS::AtLeastOnce).await?;
+        self.publish(&topic, payload_bytes, QoS::AtLeastOnce)
+            .await?;
 
         match timeout(Duration::from_secs(10), rx).await {
             Ok(Ok(response_body)) => Ok(response_body),
@@ -136,6 +140,9 @@ impl MqttManager {
         }
 
         let payload_str = String::from_utf8_lossy(payload_bytes);
-        info!("📩 收到普通消息: Topic={}, Payload={}", publish.topic, payload_str);
+        info!(
+            "📩 收到普通消息: Topic={}, Payload={}",
+            publish.topic, payload_str
+        );
     }
 }
