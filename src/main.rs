@@ -1,3 +1,4 @@
+use rumqttc::QoS;
 use backend::modules::system::service::CONTEXT;
 use backend::http_server;
 use backend::util::mqtt::MqttManager;
@@ -18,6 +19,7 @@ async fn main() -> std::io::Result<()> {
     dbg!("init_pool ok! 11");
     let mqtt_config = CONTEXT.config.mqtt.clone();
     let mqtt_manager = MqttManager::init(mqtt_config).await;
+    mqtt_manager.subscribe("GIOT-GW/UL/#", QoS::AtLeastOnce).await;
     CONTEXT.sys_dict_data_service.update_cache().await?;
     // dbg!("init sys_dict data ok! 22");
     CONTEXT.sys_config_service.loading_config_cache().await?;

@@ -9,9 +9,18 @@ use tokio::sync::oneshot;
 use serde_json::{json, Value};
 use once_cell::sync::Lazy;
 use chrono::Utc;
+use rbatis::rbdc::datetime::DateTime;
+use rbatis::snowflake::new_snowflake_id;
+use either::Either;
 
 // 假设您的配置路径如下，请根据实际情况调整
 use crate::config::config::MqttConfig;
+use crate::modules::system::service::CONTEXT;
+use crate::modules::equipment_data::domain::table::tables::EquipmentData;
+
+// DEVICE_PROTO 协议解析
+use DEVICE_PROTO::dev_frame::DevFrame;
+use DEVICE_PROTO::frame::error::ParseError;
 
 // ========== 全局状态：用于匹配 MQTT 异步回包 ==========
 // Key: transaction_id, Value: 发送结果的信道
@@ -143,7 +152,191 @@ impl MqttManager {
                 }
             }
         }
+
+        // 尝试作为 DEVICE_PROTO 协议解析
+        if let Some(parsed_data) = Self::try_parse_dev_proto(payload_bytes) {
+            info!("✅ DEVICE_PROTO 解析成功: device_id={:?}", parsed_data.device_id);
+            Self::process_device_data(parsed_data);
+            return;
+        }
+
+        // 普通文本消息
         let payload_str = String::from_utf8_lossy(payload_bytes);
         info!("📩 收到普通 MQTT 消息: Topic={}, Payload={}", publish.topic, payload_str);
     }
+
+    fn try_parse_dev_proto(payload: &[u8]) -> Option<DevFrame> {
+        // 尝试将 payload 解析为 DEVICE_PROTO 帧
+        match DevFrame::from_bytes(payload) {
+            Ok(frame) => Some(frame),
+            Err(e) => {
+                // 如果是十六进制字符串格式，尝试转换后再解析
+                if let Ok(hex_str) = std::str::from_utf8(payload) {
+                    if let Ok(bytes) = hex_from_str(hex_str) {
+                        return match DevFrame::from_bytes(&bytes) {
+                            Ok(frame) => Some(frame),
+                            Err(_) => None,
+                        };
+                    }
+                }
+                None
+            }
+        }
+    }
+
+    fn process_device_data(frame: DevFrame) {
+        let device_id_str = frame.device_id.to_string();
+        let device_type_name = frame.device_type.info().name;
+
+        info!("📡 收到设备数据: id={}, type={}", device_id_str, device_type_name);
+
+        let signal_dbm = frame.signal_strength.get_dbm();
+        let power_level = frame.power_status.level.get_level();
+        let is_external_power = frame.power_status.is_external_power;
+        let alarm_status = frame.alarm_status.to_u8();
+
+        let alarm_info = frame.alarm_status.interpret(frame.device_type.clone());
+
+        let data_record_interval = frame.data_record_interval.get_interval();
+        let data_record_count = frame.data_record_count.get_count();
+
+        let current_data_json = match &frame.current_device_data {
+            either::Either::Left(device_data) => {
+                let params: Vec<serde_json::Value> = device_data
+                    .get_parameters()
+                    .iter()
+                    .map(|p| json!({
+                        "name": p.parameter_name,
+                        "physical_value": p.physical_value,
+                        "unit": p.unit,
+                        "raw_value": format!("{:?}", p.raw_value),
+                    }))
+                    .collect();
+                json!({
+                    "type": "device_data",
+                    "parameters": params
+                })
+            }
+            either::Either::Right(modbus_data) => {
+                json!({
+                    "type": "modbus_data",
+                    "data_length": modbus_data.data_length(),
+                    "data_bytes": format!("{:?}", modbus_data.to_bytes()),
+                })
+            }
+        };
+
+        let timestamp_str = frame.timestamp.to_formatted_string();
+
+        let cache_data_json: Vec<serde_json::Value> = frame
+            .cache_device_data
+            .iter()
+            .zip(frame.cache_timestamp.iter())
+            .map(|(data, ts)| {
+                let data_info = match data {
+                    either::Either::Left(device_data) => {
+                        let params: Vec<serde_json::Value> = device_data
+                            .get_parameters()
+                            .iter()
+                            .map(|p| json!({
+                                "name": p.parameter_name,
+                                "physical_value": p.physical_value,
+                                "unit": p.unit,
+                            }))
+                            .collect();
+                        json!({
+                            "type": "device_data",
+                            "parameters": params
+                        })
+                    }
+                    either::Either::Right(modbus_data) => {
+                        json!({
+                            "type": "modbus_data",
+                            "data_length": modbus_data.data_length(),
+                        })
+                    }
+                };
+                json!({
+                    "timestamp": ts.to_formatted_string(),
+                    "data": data_info
+                })
+            })
+            .collect();
+
+        let full_device_data = json!({
+             "frame_info": {
+                 "command_type": format!("0x{:02X}", frame.command_type),
+                 "frame_length": frame.frame_length.len(),
+                 "crc": frame.crc,
+             },
+             "device": {
+                 "id": device_id_str,
+                 "type_code": frame.device_type.to_u8(),
+                 "type_name": device_type_name,
+             },
+             "power": {
+                 "level": power_level,
+                 "is_external_power": is_external_power,
+                 "source": format!("{:?}", frame.power_status.source),
+             },
+             "signal": {
+                 "value": signal_dbm,
+                 "unit": "dBm",
+             },
+             "alarm": {
+                 "status": alarm_status,
+                 "info": format!("{:?}", alarm_info),
+                 "parameters": {
+                     "alarm_group": frame.alarm_parameters.get_alarm_group(),
+                     "lower_limit_0": frame.alarm_parameters.get_alarm_lower_limit(0).map(|v| format!("{:?}", v)),
+                     "upper_limit_0": frame.alarm_parameters.get_alarm_upper_limit(0).map(|v| format!("{:?}", v)),
+                     "lower_limit_1": frame.alarm_parameters.get_alarm_lower_limit(1).map(|v| format!("{:?}", v)),
+                     "upper_limit_1": frame.alarm_parameters.get_alarm_upper_limit(1).map(|v| format!("{:?}", v)),
+                 }
+             },
+             "data_record": {
+                 "interval_seconds": data_record_interval,
+                 "count": data_record_count,
+             },
+             "current_data": current_data_json,
+             "timestamp": timestamp_str,
+             "cache_data": cache_data_json,
+         });
+
+        info!("📊 完整设备数据:\n{}", serde_json::to_string_pretty(&full_device_data).unwrap());
+
+        let equipment_data = EquipmentData {
+             id: Some(new_snowflake_id() as i64),
+             equipment_number: Some(device_id_str.clone()),
+             equipment_name: Some(format!("设备-{}", &device_id_str[..8])),
+             device_category: Some(device_type_name.to_string()),
+             upload_time: Some(DateTime::now().into()),
+             battery_level: Some(power_level as f64),
+             signal_strength: Some(signal_dbm as i32),
+             alarm_status: Some(alarm_status as i32),
+             payload: Some(full_device_data.clone()),
+             dept_id: None,
+             remark: None,
+             create_time: Some(DateTime::now().into()),
+         };
+
+        tokio::spawn(async move {
+            if let Err(e) = EquipmentData::insert(crate::pool!(), &equipment_data).await {
+                error!("❌ 保存设备数据失败: {}", e);
+            } else {
+                info!("✅ 设备数据已保存: {}", device_id_str);
+            }
+        });
+    }
+}
+
+fn hex_from_str(input: &str) -> Result<Vec<u8>, std::num::ParseIntError> {
+    input
+        .trim()
+        .replace(|c: char| !c.is_ascii_hexdigit(), "")
+        .as_bytes()
+        .chunks(2)
+        .map(|chunk| std::str::from_utf8(chunk).unwrap())
+        .map(|chunk| u8::from_str_radix(chunk, 16))
+        .collect()
 }

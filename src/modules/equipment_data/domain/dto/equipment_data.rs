@@ -23,10 +23,6 @@ pub struct EquipmentDaumPageDTO {
     pub payload: Option<serde_json::Value>,
     pub dept_id: Option<i32>,
     pub remark: Option<String>,
-    #[serde(rename(deserialize = "onlineState"))]
-    pub online_state: Option<String>,
-    #[serde(rename(deserialize = "onlineStateCalc"))]
-    pub online_state_calc: Option<String>,
 }
 //    实现从 dto对象 到 PageRequest
 impl From<EquipmentDaumPageDTO> for PageRequest {
@@ -50,11 +46,9 @@ pub struct EquipmentDaumAddDTO {
     pub battery_level: Option<f64>,//剩余电量百分比/数值
     pub signal_strength: Option<i32>,//信号强度 (对应原表 rssi 或 signal_strength)
     pub alarm_status: Option<i32>,//报警状态标识 (0:正常, 1:报警或异常)
-    pub payload: Option<serde_json::Value>,//核心测量数据 (JSONB 格式，存储各设备特有的电压、电流、开关状态等指标)
-    pub dept_id: Option<i32>,//部门ID，用于权限管理
-    pub remark: Option<String>,//备注描述
-    pub online_state: Option<String>,
-    pub online_state_calc: Option<String>,
+    pub payload: Option<serde_json::Value>,
+    pub dept_id: Option<i32>,
+    pub remark: Option<String>,
 }
 //    实现从 table对象 到 AddDTO对象的复制创建
 impl From<EquipmentDaumAddDTO> for EquipmentData {
@@ -71,9 +65,7 @@ impl From<EquipmentDaumAddDTO> for EquipmentData {
             payload: arg.payload,
             dept_id: arg.dept_id,
             remark: arg.remark,
-            create_time: DateTime::now() .into(),
-            online_state: arg.online_state,
-            online_state_calc: arg.online_state_calc,
+            create_time: DateTime::now().into(),
         }
     }
 }
@@ -91,8 +83,6 @@ pub struct EquipmentDaumUpdateDTO {
     pub payload: Option<serde_json::Value>,
     pub dept_id: Option<i32>,
     pub remark: Option<String>,
-    pub online_state: Option<String>,
-    pub online_state_calc: Option<String>,
 }
 //    实现从 table对象 到 UpdateDTO对象的复制创建
 impl From<EquipmentDaumUpdateDTO> for EquipmentData {
@@ -110,8 +100,6 @@ impl From<EquipmentDaumUpdateDTO> for EquipmentData {
             dept_id: arg.dept_id,
             remark: arg.remark,
             create_time: None,
-            online_state: arg.online_state,
-            online_state_calc: arg.online_state_calc,
         }
     }
 }

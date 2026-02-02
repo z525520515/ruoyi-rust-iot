@@ -75,10 +75,12 @@ permit-lib = { path = "./permit-lib" }
 pinyin = "0.10.0"
 anyhow = "1.0.100"
 rumqttc = "0.25.1"
+either = "1.15.0"
 # actix-web-actors = "4.3.1"
 umya-spreadsheet = "1.1"
 
 netcore = { path = "./src/netcore" }
+DEVICE_PROTO = { path = "./core/dev_protocols/device_proto" }
 axum = "0.7"
 dashmap = "5.5"
 env_logger = "0.10"

@@ -132,10 +132,10 @@ impl EquipmentInstallationService {
 
         let temp_path = std::env::temp_dir().join(format!("template_{}.xlsx", uuid::Uuid::new_v4().to_string()));
         umya_spreadsheet::writer::xlsx::write(&book, &temp_path).map_err(|e| Error::from(format!("导出Excel失败: {}", e)))?;
-        
+
         let output = std::fs::read(&temp_path).map_err(|e| Error::from(format!("读取临时文件失败: {}", e)))?;
         std::fs::remove_file(&temp_path).ok();
-        
+
         Ok(output)
     }
 
@@ -159,7 +159,7 @@ impl EquipmentInstallationService {
         loop {
             let mut has_data = false;
             let mut cells: Vec<String> = Vec::with_capacity(10);
-            
+
             let col_names = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
             for (i, col_name) in col_names.iter().enumerate() {
                 let coord = format!("{}{}", col_name, row);
@@ -205,11 +205,6 @@ impl EquipmentInstallationService {
         if let Some(num) = &arg.equipment_number {
             if !num.is_empty() {
                 wheres.push_str(&format!(" AND equipment_number LIKE '%{}%'", num));
-            }
-        }
-        if let Some(state) = &arg.online_state {
-            if !state.is_empty() {
-                wheres.push_str(&format!(" AND online_state_calc = '{}'", state));
             }
         }
         count_sql.push_str(&wheres);
