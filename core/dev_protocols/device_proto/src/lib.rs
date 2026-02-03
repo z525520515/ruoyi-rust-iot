@@ -3,6 +3,7 @@
 pub mod constants;
 pub mod frame;
 pub mod dev_frame;
+pub mod s909pro;
 pub mod types;
 pub mod utils;
 
@@ -13,6 +14,7 @@ pub use constants::{
 
 pub use frame::error::{ParseError, ParseResult};
 pub use dev_frame::DevFrame;
+pub use s909pro::S909UP;
 
 // TODO: 重构代码
 pub trait Codec<const N: usize> {
