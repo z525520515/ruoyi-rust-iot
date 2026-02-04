@@ -7,4 +7,5 @@ pub mod web_utils;
 pub mod hardware;
 pub mod idseq;
 pub mod mqtt;
+pub mod iot_data;
 mod topic_builder;

@@ -22,6 +22,8 @@ use crate::modules::equipment_data::domain::table::tables::EquipmentData;
 use DEVICE_PROTO::dev_frame::DevFrame;
 use DEVICE_PROTO::frame::error::ParseError;
 
+use crate::util::iot_data::IotData;
+
 // ========== 全局状态：用于匹配 MQTT 异步回包 ==========
 // Key: transaction_id, Value: 发送结果的信道
 static PENDING_REQUESTS: Lazy<DashMap<i64, oneshot::Sender<Value>>> = Lazy::new(DashMap::new);
@@ -53,7 +55,7 @@ impl MqttManager {
                         match event {
                             Event::Incoming(Packet::Publish(publish)) => {
                                 // 核心修改：调用处理函数检查是否有 HTTP 请求在等待此消息
-                                Self::handle_raw_message(publish);
+                                Self::handle_raw_message(&client, publish);
                             }
                             Event::Incoming(Packet::ConnAck(_)) => {
                                 info!("✅ MQTT 连接成功 (ConnAck)");
@@ -137,7 +139,7 @@ impl MqttManager {
             }
         }
     }
-    fn handle_raw_message(publish: Publish) {
+    fn handle_raw_message(client: &AsyncClient, publish: Publish) {
         let payload_bytes = &publish.payload;
         if let Ok(Value::Array(arr)) = serde_json::from_slice::<Value>(payload_bytes) {
             if arr.len() >= 2 {
@@ -156,7 +158,7 @@ impl MqttManager {
         // 尝试作为 DEVICE_PROTO 协议解析
         if let Some(parsed_data) = Self::try_parse_dev_proto(payload_bytes) {
             info!("✅ DEVICE_PROTO 解析成功: device_id={:?}", parsed_data.device_id);
-            Self::process_device_data(parsed_data);
+            Self::process_device_data(client, parsed_data);
             return;
         }
 
@@ -184,7 +186,7 @@ impl MqttManager {
         }
     }
 
-    fn process_device_data(frame: DevFrame) {
+    fn process_device_data(client: &AsyncClient, frame: DevFrame) {
         let device_id_str = frame.device_id.to_string();
         let device_type_name = frame.device_type.info().name;
 
@@ -200,7 +202,7 @@ impl MqttManager {
         let data_record_interval = frame.data_record_interval.get_interval();
         let data_record_count = frame.data_record_count.get_count();
 
-        let current_data_json = match &frame.current_device_data {
+        let current_data_value = match &frame.current_device_data {
             either::Either::Left(device_data) => {
                 let params: Vec<serde_json::Value> = device_data
                     .get_parameters()
@@ -298,7 +300,7 @@ impl MqttManager {
                  "interval_seconds": data_record_interval,
                  "count": data_record_count,
              },
-             "current_data": current_data_json,
+             "current_data": current_data_value,
              "timestamp": timestamp_str,
              "cache_data": cache_data_json,
          });
@@ -320,11 +322,58 @@ impl MqttManager {
              create_time: Some(DateTime::now().into()),
          };
 
+        let iot_client = client.clone();
+        let iot_device_id = device_id_str.clone();
+        let iot_device_type = device_type_name.clone();
+        let iot_equipment_name = format!("设备-{}", &device_id_str[..8]);
+        let iot_signal = signal_dbm;
+        let iot_battery = power_level;
+        let iot_alarm_status = alarm_status;
+        let iot_alarm_info = format!("{:?}", alarm_info);
+
+        let iot_value = match &frame.current_device_data {
+            either::Either::Left(device_data) => {
+                let first_param = device_data.get_parameters().first();
+                if let Some(p) = first_param {
+                    Some(format!("{:.3} {}", p.physical_value, p.unit))
+                } else {
+                    Some(String::new())
+                }
+            }
+            either::Either::Right(_) => {
+                Some(format!("{:?}", frame.current_device_data))
+            }
+        };
+
         tokio::spawn(async move {
             if let Err(e) = EquipmentData::insert(crate::pool!(), &equipment_data).await {
                 error!("❌ 保存设备数据失败: {}", e);
             } else {
                 info!("✅ 设备数据已保存: {}", device_id_str);
+            }
+
+            let mut iot_data = IotData::new();
+            iot_data.device_id = Some(iot_device_id.clone());
+            iot_data.gateway_id = None;
+            iot_data.device_type = Some(iot_device_type.to_string());
+            iot_data.extension_tag = None;
+            iot_data.event_time = Some(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string());
+            iot_data.location = Some(iot_equipment_name);
+            iot_data.value = iot_value;
+            iot_data.alarm_condition = None;
+            iot_data.alarm_status = if iot_alarm_status > 0 { Some("1".to_string()) } else { Some("0".to_string()) };
+            iot_data.master_machine = None;
+            iot_data.alarm_remark = if iot_alarm_status > 0 { Some(iot_alarm_info) } else { None };
+            iot_data.battery = Some(iot_battery.to_string());
+            iot_data.rssi = Some(iot_signal.to_string());
+
+            let iot_payload = serde_json::to_string(&iot_data).unwrap_or_default();
+            let topic = format!("iot/iot/{}/data", iot_device_id);
+
+            if let Err(e) = iot_client.publish(&topic, QoS::AtLeastOnce, false, iot_payload.into_bytes()).await {
+                error!("❌ IotData 转发失败: {}", e);
+            } else {
+                info!("✅ IotData 转发成功: topic={}", topic);
             }
         });
     }
