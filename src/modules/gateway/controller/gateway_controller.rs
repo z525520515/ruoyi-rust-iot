@@ -75,8 +75,8 @@ pub async fn system_device_unique_id(req: web::Json<GatewayInvokeVO>) -> impl Re
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "system",
-            "deviceUniqueID",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -97,8 +97,8 @@ pub async fn system_device_unique_id_hash(req: web::Json<GatewayInvokeVO>) -> im
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "system",
-            "deviceUniqueIDHash",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -119,8 +119,8 @@ pub async fn system_info(req: web::Json<GatewayInvokeVO>) -> impl Responder {
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "system",
-            "info",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -136,16 +136,26 @@ pub async fn system_info(req: web::Json<GatewayInvokeVO>) -> impl Responder {
 pub async fn system_change_password(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
     if let Some(ref manager) = CONTEXT.mqtt_manager {
-        let params = ChangePasswordParams {
-            current_password: "".to_string(),
-            new_password: "".to_string(),
-        };
+        let current_password = vo.params.get("current_password")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let new_password = vo.params.get("new_password")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        if current_password.is_empty() || new_password.is_empty() {
+            return RespVO::<()>::from_error_info(CODE_FAIL, "缺少参数 current_password 或 new_password").resp_json();
+        }
+
+        let params = ChangePasswordParams { current_password, new_password };
         let result = manager.gateway_invoke(
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "system",
-            "changePassword",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -166,8 +176,8 @@ pub async fn system_application_info(req: web::Json<GatewayInvokeVO>) -> impl Re
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "system",
-            "applicationInfo",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -188,8 +198,8 @@ pub async fn system_iccid(req: web::Json<GatewayInvokeVO>) -> impl Responder {
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "system",
-            "iccIDs",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -210,8 +220,8 @@ pub async fn system_set_time(req: web::Json<GatewayInvokeVO>) -> impl Responder 
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "system",
-            "setTime",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -227,13 +237,22 @@ pub async fn system_set_time(req: web::Json<GatewayInvokeVO>) -> impl Responder 
 pub async fn system_set_timezone(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
     if let Some(ref manager) = CONTEXT.mqtt_manager {
-        let params = SetTimeZoneParams("Asia/Shanghai".to_string());
+        let timezone = vo.params.get("timezone")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        if timezone.is_empty() {
+            return RespVO::<()>::from_error_info(CODE_FAIL, "缺少参数 timezone").resp_json();
+        }
+
+        let params = SetTimeZoneParams(timezone);
         let result = manager.gateway_invoke(
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "system",
-            "setTimeZone",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -254,8 +273,8 @@ pub async fn system_available_timezones(req: web::Json<GatewayInvokeVO>) -> impl
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "system",
-            "availableTimeZoneIDs",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -276,8 +295,8 @@ pub async fn system_current_timezone(req: web::Json<GatewayInvokeVO>) -> impl Re
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "system",
-            "systemTimeZoneID",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -298,8 +317,8 @@ pub async fn system_reboot(req: web::Json<GatewayInvokeVO>) -> impl Responder {
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "system",
-            "performReboot",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -322,8 +341,8 @@ pub async fn serial_available_ports(req: web::Json<GatewayInvokeVO>) -> impl Res
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "serial_port_manager",
-            "availableSerialPorts",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -339,15 +358,22 @@ pub async fn serial_available_ports(req: web::Json<GatewayInvokeVO>) -> impl Res
 pub async fn serial_open_port(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
     if let Some(ref manager) = CONTEXT.mqtt_manager {
-        let params = OpenSerialPortParams {
-            port_name: "ttyS1".to_string(),
-        };
+        let port_name = vo.params.get("port_name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        if port_name.is_empty() {
+            return RespVO::<()>::from_error_info(CODE_FAIL, "缺少参数 port_name").resp_json();
+        }
+
+        let params = OpenSerialPortParams { port_name };
         let result = manager.gateway_invoke(
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "serial_port_manager",
-            "openSerialPort",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -367,7 +393,7 @@ pub async fn serial_close_port(req: web::Json<GatewayInvokeVO>) -> impl Responde
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
-        
+
         if port_name.is_empty() {
             return RespVO::<()>::from_error_info(CODE_FAIL, "缺少参数 port_name").resp_json();
         }
@@ -394,16 +420,25 @@ pub async fn serial_close_port(req: web::Json<GatewayInvokeVO>) -> impl Responde
 pub async fn serial_set_baudrate(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
     if let Some(ref manager) = CONTEXT.mqtt_manager {
-        let params = SetBaudRateParams {
-            port_name: "ttyS1".to_string(),
-            baud_rate: 115200,
-        };
+        let port_name = vo.params.get("port_name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let baud_rate = vo.params.get("baud_rate")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(115200) as u32;
+
+        if port_name.is_empty() {
+            return RespVO::<()>::from_error_info(CODE_FAIL, "缺少参数 port_name").resp_json();
+        }
+
+        let params = SetBaudRateParams { port_name, baud_rate };
         let result = manager.gateway_invoke(
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "serial_port_manager",
-            "setBaudRate",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -424,8 +459,8 @@ pub async fn serial_available_databits(req: web::Json<GatewayInvokeVO>) -> impl 
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "serial_port_manager",
-            "availableDataBits",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -446,8 +481,8 @@ pub async fn serial_available_parities(req: web::Json<GatewayInvokeVO>) -> impl 
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "serial_port_manager",
-            "availableParities",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -468,8 +503,8 @@ pub async fn serial_available_stopbits(req: web::Json<GatewayInvokeVO>) -> impl 
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "serial_port_manager",
-            "availableStopBits",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
@@ -490,8 +525,8 @@ pub async fn serial_available_flowcontrols(req: web::Json<GatewayInvokeVO>) -> i
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
-            "serial_port_manager",
-            "availableFlowControls",
+            &vo.action,
+            &vo.method,
             json!(params)
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
