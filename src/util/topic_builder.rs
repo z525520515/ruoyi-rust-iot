@@ -1,4 +1,3 @@
-use anyhow::Result;
 use urlencoding::encode;
 
 #[allow(dead_code)]

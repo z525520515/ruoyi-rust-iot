@@ -1,16 +1,15 @@
 // installation_controller
-use std::io::Cursor;
 use actix_web::{delete, get, post, put, web, HttpRequest, HttpResponse, Responder};
 use actix_multipart::Multipart;
 use permit_lib::has_permit;
 use futures_util::stream::StreamExt;
 // 引用 数据表相关对象
 use crate::modules::equipment::domain::dto::equipment_installation::{
-    EquipmentInstallationAddDTO, EquipmentInstallationPageDTO, EquipmentInstallationUpdateDTO, EquipmentInstallationImportDTO,
+    EquipmentInstallationAddDTO, EquipmentInstallationPageDTO, EquipmentInstallationUpdateDTO,
 };
 use crate::modules::equipment::domain::table::tables::EquipmentInstallation;
 use crate::modules::system::domain::vo::{PageVO, RespVO};
-use crate::modules::system::service::{ServiceContext, CONTEXT};
+use crate::modules::system::service::CONTEXT;
 use crate::modules::equipment_data::domain::dto::equipment_data::EquipmentDaumPageDTO;
 
 /// installation controller

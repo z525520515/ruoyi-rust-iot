@@ -1,5 +1,5 @@
 use crate::modules::system::domain::dto::role::{RolePageDTO, RoleAuthUserPageDTO};
-use crate::modules::system::domain::table::{SysRole, SysRoleMenu, SysUserRole};
+use crate::modules::system::domain::table::{SysRole, SysRoleMenu};
 use crate::modules::system::domain::vo::{SysRoleVO, SysUserVO};
 use crate::error::{Error, Result};
 use crate::pool;

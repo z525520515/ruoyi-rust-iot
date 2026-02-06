@@ -4,7 +4,7 @@ use permit_lib::has_permit;
 // 引用 数据表相关对象
 use crate::modules::equipment_data::domain::table::tables::EquipmentData;
 use crate::modules::equipment_data::domain::dto::equipment_data::{EquipmentDaumAddDTO, EquipmentDaumUpdateDTO, EquipmentDaumPageDTO};
-use crate::modules::system::service::{ServiceContext, CONTEXT};
+use crate::modules::system::service::CONTEXT;
 use crate::modules::system::domain::vo::{PageVO, RespVO};
 
 /// daum controller

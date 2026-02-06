@@ -1,9 +1,7 @@
 use rbatis::plugin::page::Page;
 use rbatis::plugin::page::PageRequest;
 // 引用 数据表相关对象
-use crate::modules::equipment_data::domain::dto::equipment_data::{
-    EquipmentDaumAddDTO, EquipmentDaumPageDTO, EquipmentDaumUpdateDTO,
-};
+use crate::modules::equipment_data::domain::dto::equipment_data::EquipmentDaumPageDTO;
 use crate::modules::equipment_data::domain::table::tables::EquipmentData;
 use crate::modules::equipment_data::domain::vo::equipmentdaumvo::EquipmentDaumVo;
 use crate::modules::system::service::CONTEXT;

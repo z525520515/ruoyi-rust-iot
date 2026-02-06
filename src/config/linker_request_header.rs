@@ -7,7 +7,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::oneshot;
 use rumqttc::{AsyncClient, Event, MqttOptions, Packet, QoS};
-use log::{error, info};
+use log::error;
+use chrono::Utc;
+use rbatis::snowflake::new_snowflake_id;
 
 // ========== 1. 协议模型 (基于 README.md) ==========
 
@@ -43,6 +45,81 @@ pub struct HttpInvokeParams {
     pub action: String,        // e.g., system
     pub method: String,        // e.g., deviceUniqueID
     pub params: Value,         // 具体的参数内容
+}
+
+// ========== 1.1 README 协议相关常规值 ==========
+
+pub const DEFAULT_CLIENT_NAME: &str = "test_mqtt";
+pub const DEFAULT_REQUEST_SOURCE: &str = "control";
+pub const DEFAULT_PROTOCOL_VERSION: &str = "1.0.0";
+pub const DEFAULT_TIMEOUT_MS: u64 = 3000;
+
+pub fn generate_transaction_id() -> i64 {
+    new_snowflake_id() as i64
+}
+
+pub fn current_timestamp_ms() -> i64 {
+    Utc::now().timestamp_millis()
+}
+
+pub fn build_topic_prefix(device_hash: &str, client_name: &str) -> String {
+    format!("{}/{}", urlencoding::encode(device_hash), urlencoding::encode(client_name))
+}
+
+pub fn build_request_topic(
+    topic_prefix: &str,
+    protocol_type: &str,
+    stack_name: &str,
+    action: &str,
+) -> String {
+    format!(
+        "{}/protocol_stack/{}/{}/{}/request",
+        topic_prefix,
+        urlencoding::encode(protocol_type),
+        urlencoding::encode(stack_name),
+        urlencoding::encode(action)
+    )
+}
+
+pub fn build_response_topic(
+    topic_prefix: &str,
+    protocol_type: &str,
+    stack_name: &str,
+    action: &str,
+) -> String {
+    format!(
+        "{}/protocol_stack/{}/{}/{}/response",
+        topic_prefix,
+        urlencoding::encode(protocol_type),
+        urlencoding::encode(stack_name),
+        urlencoding::encode(action)
+    )
+}
+
+pub fn build_request_header(
+    action: &str,
+    method: &str,
+    source: &str,
+    target: &str,
+    timestamp: i64,
+    transaction_id: i64,
+    timeout: u64,
+) -> LinkerRequestHeader {
+    LinkerRequestHeader {
+        action: action.to_string(),
+        message_type: "request".to_string(),
+        method: method.to_string(),
+        source: source.to_string(),
+        target: target.to_string(),
+        timestamp,
+        transaction_id,
+        version: DEFAULT_PROTOCOL_VERSION.to_string(),
+        timeout,
+    }
+}
+
+pub fn build_request_payload(header: LinkerRequestHeader, params: Value) -> Value {
+    json!([header, { "params": params }])
 }
 
 // ========== 2. 全局状态管理 ==========
@@ -118,39 +195,39 @@ async fn invoke_gateway(
     Json(payload): Json<HttpInvokeParams>,
 ) -> Result<Json<Value>, String> {
     // 1. 生成符合规范的 Transaction ID (i64)
-    let tid = (chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0) / 1000) as i64;
+    let tid = generate_transaction_id();
 
     // 2. 准备主题路径 (README: {topicPrefix}/protocol_stack/${type}/${name}/${action}/request)
     // 注意：topicPrefix 需要百分号编码，此处简化演示
-    let encoded_hash = urlencoding::encode(&state.device_hash);
-    // TODO: 目前是测试阶段后续生产系统更换为ReservedClient
-    let topic_prefix = format!("{}/test_mqtt", encoded_hash);
-    let request_topic = format!(
-        "{}/protocol_stack/{}/{}/{}/request",
-        topic_prefix, payload.protocol_type, payload.stack_name, payload.action
+    let topic_prefix = build_topic_prefix(&state.device_hash, DEFAULT_CLIENT_NAME);
+    let request_topic = build_request_topic(
+        &topic_prefix,
+        &payload.protocol_type,
+        &payload.stack_name,
+        &payload.action,
     );
-    let response_topic = format!(
-        "{}/protocol_stack/{}/{}/{}/response",
-        topic_prefix, payload.protocol_type, payload.stack_name, payload.action
+    let response_topic = build_response_topic(
+        &topic_prefix,
+        &payload.protocol_type,
+        &payload.stack_name,
+        &payload.action,
     );
 
     // 3. 订阅响应主题 (确保能收到回包)
     let _ = state.mqtt_client.subscribe(&response_topic, QoS::AtMostOnce).await;
 
     // 4. 构建规范要求的 JSON 数组消息 [Header, Params]
-    let header = LinkerRequestHeader {
-        action: payload.action,
-        message_type: "request".to_string(),
-        method: payload.method,
-        source: "HTTP-Gateway".to_string(),
-        target: state.device_hash.clone(),
-        timestamp: chrono::Utc::now().timestamp_millis(),
-        transaction_id: tid,
-        version: "1.0.0".to_string(),
-        timeout: 5000,
-    };
+    let header = build_request_header(
+        &payload.action,
+        &payload.method,
+        DEFAULT_REQUEST_SOURCE,
+        &state.device_hash,
+        current_timestamp_ms(),
+        tid,
+        DEFAULT_TIMEOUT_MS,
+    );
 
-    let mqtt_payload = json!([header, { "params": payload.params }]);
+    let mqtt_payload = build_request_payload(header, payload.params);
     let payload_bytes = serde_json::to_vec(&mqtt_payload).map_err(|e| e.to_string())?;
 
     // 5. 创建同步等待信道

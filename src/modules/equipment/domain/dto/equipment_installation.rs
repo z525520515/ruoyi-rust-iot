@@ -1,5 +1,4 @@
 use crate::modules::equipment::domain::table::tables::EquipmentInstallation;
-use rbatis::object_id::ObjectId;
 use rbatis::snowflake::new_snowflake_id;
 use rbatis::rbdc::datetime::DateTime;
 use rbatis::plugin::page::PageRequest;

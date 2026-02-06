@@ -7,14 +7,24 @@ use dashmap::DashMap;
 use tokio::sync::oneshot;
 use serde_json::{json, Value};
 use once_cell::sync::Lazy;
-use chrono::Utc;
 use rbatis::rbdc::datetime::DateTime;
 use rbatis::snowflake::new_snowflake_id;
-use either::Either;
 
 // 假设您的配置路径如下，请根据实际情况调整
 use crate::config::config::MqttConfig;
 use crate::modules::equipment_data::domain::table::tables::EquipmentData;
+use crate::config::linker_request_header::{
+    build_request_header,
+    build_request_payload,
+    build_request_topic,
+    build_response_topic,
+    build_topic_prefix,
+    current_timestamp_ms,
+    generate_transaction_id,
+    DEFAULT_CLIENT_NAME,
+    DEFAULT_REQUEST_SOURCE,
+    DEFAULT_TIMEOUT_MS,
+};
 
 // DEVICE_PROTO 协议解析
 use DEVICE_PROTO::dev_frame::DevFrame;
@@ -96,27 +106,34 @@ impl MqttManager {
         params: Value,       // 参数
     ) -> Result<Value> {
         // 1. 生成事务 ID (微秒级时间戳)
-        let tid = (Utc::now().timestamp_nanos_opt().unwrap_or(0) / 1000) as i64;
+        let tid = generate_transaction_id();
 
         // 2. 构造 README 要求的 [Header, Params] 数组格式
-        let header = json!({
-            "action": action,
-            "message_type": "request",
-            "method": method,
-            "source": "HTTP_BACKEND",
-            "target": device_hash,
-            "timestamp": Utc::now().timestamp_millis(),
-            "transaction_id": tid,
-            "version": "1.0.0"
-        });
-        let full_payload = json!([header, { "params": params }]);
+        let header = build_request_header(
+            action,
+            method,
+            DEFAULT_REQUEST_SOURCE,
+            device_hash,
+            current_timestamp_ms(),
+            tid,
+            DEFAULT_TIMEOUT_MS,
+        );
+        let full_payload = build_request_payload(header, params);
         let payload_bytes = serde_json::to_vec(&full_payload)?;
 
         // 3. 构造 Topic (对 Hash 进行 URL 编码以防特殊字符)
-        let encoded_hash = urlencoding::encode(device_hash);
-        let topic = format!(
-            "{}/ReservedClient/protocol_stack/{}/{}/{}/request",
-            encoded_hash, protocol_type, stack_name, action
+        let topic_prefix = build_topic_prefix(device_hash, DEFAULT_CLIENT_NAME);
+        let request_topic = build_request_topic(
+            &topic_prefix,
+            protocol_type,
+            stack_name,
+            action,
+        );
+        let response_topic = build_response_topic(
+            &topic_prefix,
+            protocol_type,
+            stack_name,
+            action,
         );
 
         // 4. 在全局等待队列中注册
@@ -124,7 +141,8 @@ impl MqttManager {
         PENDING_REQUESTS.insert(tid, tx);
 
         // 5. 发布 MQTT 消息
-        self.client.publish(&topic, QoS::AtLeastOnce, false, payload_bytes).await?;
+        self.client.subscribe(&response_topic, QoS::AtMostOnce).await?;
+        self.client.publish(&request_topic, QoS::AtLeastOnce, false, payload_bytes).await?;
 
         // 6. 等待回包 (设置 10 秒超时)
         match timeout(Duration::from_secs(10), rx).await {

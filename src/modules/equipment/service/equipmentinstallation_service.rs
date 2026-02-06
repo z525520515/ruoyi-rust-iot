@@ -2,7 +2,7 @@ use rbatis::plugin::page::Page;
 use rbatis::plugin::page::PageRequest;
 // 引用 数据表相关对象
 use crate::modules::equipment::domain::dto::equipment_installation::{
-    EquipmentInstallationAddDTO, EquipmentInstallationPageDTO, EquipmentInstallationUpdateDTO, EquipmentInstallationImportDTO,
+    EquipmentInstallationPageDTO, EquipmentInstallationImportDTO,
 };
 use crate::modules::equipment::domain::table::tables::EquipmentInstallation;
 use crate::modules::equipment::domain::vo::equipmentinstallationvo::EquipmentInstallationVo;
@@ -15,7 +15,6 @@ use crate::error::Result;
 // pool 数据库
 use crate::pool;
 use rbs::value;
-use umya_spreadsheet::Spreadsheet;
 use std::io::Write;
 /// equipment_installation service
 pub struct EquipmentInstallationService {}

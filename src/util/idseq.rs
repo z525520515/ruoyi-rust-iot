@@ -68,7 +68,7 @@ impl IdSeq {
      */
     pub fn next_seid(timestamp: u64) -> u64 {
         // 时钟回拨检查
-        if (timestamp < LAST_TIMESTAMP.load(Ordering::Relaxed)) {
+        if timestamp < LAST_TIMESTAMP.load(Ordering::Relaxed) {
             // 发生时钟回拨
             println!(
                 "时钟回拨, 启用备份机器ID: now: [{}] last: [{}]",
@@ -78,14 +78,14 @@ impl IdSeq {
         }
 
         // 开始下一秒
-        if (timestamp != LAST_TIMESTAMP.load(Ordering::Relaxed)) {
+        if timestamp != LAST_TIMESTAMP.load(Ordering::Relaxed) {
             let swapped_value = LAST_TIMESTAMP.swap(timestamp, Ordering::Relaxed);
             // = timestamp;
             let swapped_sequence = SEQUENCE.swap(0, Ordering::Relaxed);
             // sequence = 0;
         }
         SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        if (0 == (SEQUENCE.load(Ordering::Relaxed) & SEQUENCE_MAX)) {
+        if 0 == (SEQUENCE.load(Ordering::Relaxed) & SEQUENCE_MAX) {
             // 秒内序列用尽
             //            log.warn("秒内[{}]序列用尽, 启用备份机器ID序列", timestamp);
             SEQUENCE.fetch_sub(1, Ordering::Relaxed);
@@ -102,19 +102,19 @@ impl IdSeq {
      * @return long
      */
     pub fn next_id_backup(mut timestamp: u64) -> u64 {
-        if (timestamp < LAST_TIMESTAMP_BAK.load(Ordering::Relaxed)) {
+        if timestamp < LAST_TIMESTAMP_BAK.load(Ordering::Relaxed) {
             //获取当前毫秒值
             let now: DateTime<Local> = Local::now();
             let mills: u64 = now.timestamp_millis().try_into().unwrap();
 
-            if ((LAST_TIMESTAMP_BAK.load(Ordering::Relaxed) - mills / 1000) <= BACK_TIME_MAX) {
+            if (LAST_TIMESTAMP_BAK.load(Ordering::Relaxed) - mills / 1000) <= BACK_TIME_MAX {
                 timestamp = LAST_TIMESTAMP_BAK.load(Ordering::Relaxed);
             } else {
                 // throw new RuntimeException(String.format("时钟回拨: now: [%d] last: [%d]", timestamp, lastTimestampBak));
             }
         }
 
-        if (timestamp != LAST_TIMESTAMP_BAK.load(Ordering::Relaxed)) {
+        if timestamp != LAST_TIMESTAMP_BAK.load(Ordering::Relaxed) {
             let swapped_value = LAST_TIMESTAMP_BAK.swap(timestamp, Ordering::Relaxed);
             // = timestamp;
             let swapped_sequence = SEQUENCE_BAK.swap(0, Ordering::Relaxed);
@@ -125,7 +125,7 @@ impl IdSeq {
         }
         SEQUENCE_BAK.fetch_add(1, Ordering::Relaxed);
         // sequenceBak = sequenceBak + 1;
-        if (0 == (SEQUENCE_BAK.load(Ordering::Relaxed) & SEQUENCE_MAX)) {
+        if 0 == (SEQUENCE_BAK.load(Ordering::Relaxed) & SEQUENCE_MAX) {
             // 秒内序列用尽
             //            logger.warn("秒内[{}]序列用尽, 备份机器ID借取下一秒序列", timestamp);
             return Self::next_id_backup(timestamp + 1);
