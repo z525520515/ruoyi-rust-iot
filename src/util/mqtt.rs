@@ -105,24 +105,53 @@ impl MqttManager {
         method: &str,        // 指令方法
         params: Value,       // 参数
     ) -> Result<Value> {
+        self.gateway_invoke_with_options(
+            device_hash,
+            protocol_type,
+            stack_name,
+            action,
+            method,
+            params,
+            None,
+            None,
+            None,
+        )
+        .await
+    }
+
+    pub async fn gateway_invoke_with_options(
+        &self,
+        device_hash: &str,
+        protocol_type: &str,
+        stack_name: &str,
+        action: &str,
+        method: &str,
+        params: Value,
+        client_name: Option<&str>,
+        source: Option<&str>,
+        timeout_ms: Option<u64>,
+    ) -> Result<Value> {
         // 1. 生成事务 ID (微秒级时间戳)
         let tid = generate_transaction_id();
+        let request_source = source.unwrap_or(DEFAULT_REQUEST_SOURCE);
+        let request_timeout = timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS);
 
         // 2. 构造 README 要求的 [Header, Params] 数组格式
         let header = build_request_header(
             action,
             method,
-            DEFAULT_REQUEST_SOURCE,
+            request_source,
             device_hash,
             current_timestamp_ms(),
             tid,
-            DEFAULT_TIMEOUT_MS,
+            request_timeout,
         );
         let full_payload = build_request_payload(header, params);
         let payload_bytes = serde_json::to_vec(&full_payload)?;
 
         // 3. 构造 Topic (对 Hash 进行 URL 编码以防特殊字符)
-        let topic_prefix = build_topic_prefix(device_hash, DEFAULT_CLIENT_NAME);
+        let client_name = client_name.unwrap_or(DEFAULT_CLIENT_NAME);
+        let topic_prefix = build_topic_prefix(device_hash, client_name);
         let request_topic = build_request_topic(
             &topic_prefix,
             protocol_type,
@@ -145,7 +174,7 @@ impl MqttManager {
         self.client.publish(&request_topic, QoS::AtLeastOnce, false, payload_bytes).await?;
 
         // 6. 等待回包 (设置 10 秒超时)
-        match timeout(Duration::from_secs(10), rx).await {
+        match timeout(Duration::from_millis(request_timeout), rx).await {
             Ok(Ok(response_body)) => Ok(response_body),
             Ok(Err(_)) => Err(anyhow::anyhow!("Internal communication channel closed")),
             Err(_) => {

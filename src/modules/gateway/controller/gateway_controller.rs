@@ -40,6 +40,8 @@ pub struct GenericInvokeRequest {
     pub method: String,
     #[serde(default)]
     pub params: serde_json::Value,
+    #[serde(default)]
+    pub source: Option<String>,
 }
 
 #[post("/gateway/invoke")]
@@ -47,13 +49,21 @@ pub async fn gateway_invoke(req: web::Json<GenericInvokeRequest>) -> impl Respon
     let vo = req.into_inner();
 
     if let Some(ref manager) = CONTEXT.mqtt_manager {
-        let result = manager.gateway_invoke(
+        let source = vo
+            .source
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty());
+        let result = manager.gateway_invoke_with_options(
             &vo.device_hash,
             &vo.protocol_type,
             &vo.stack_name,
             &vo.action,
             &vo.method,
-            vo.params
+            vo.params,
+            source,
+            None,
+            None,
         ).await;
         let final_result: Result<serde_json::Value, crate::error::Error> = result
             .map_err(|e| crate::error::Error::from(e.to_string()));
