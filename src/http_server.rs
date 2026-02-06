@@ -14,6 +14,7 @@ use crate::modules::system::controller::wx::{wx_controller};
 use crate::modules::system::domain::vo::RespVO;
 use crate::modules::equipment::controller::{equipmentinstallation_controller};
 use crate::modules::equipment_data::controller::equipmentdaum_controller;
+use crate::modules::gateway::controller::gateway_controller;
 
 // #[get("/")]
 // async fn index() -> impl Responder {
@@ -164,6 +165,31 @@ pub fn build_server(base_api: &'static str) -> Server {
                     .service(equipmentdaum_controller::update)
                     .service(equipmentdaum_controller::remove)
                     .service(equipmentdaum_controller::stats)
+            ).service(
+                web::scope("/gateway")
+                    // 通用网关调用接口
+                    .service(gateway_controller::gateway_invoke)
+                    // System 模块接口
+                    .service(gateway_controller::system_device_unique_id)
+                    .service(gateway_controller::system_device_unique_id_hash)
+                    .service(gateway_controller::system_info)
+                    .service(gateway_controller::system_change_password)
+                    .service(gateway_controller::system_application_info)
+                    .service(gateway_controller::system_iccid)
+                    .service(gateway_controller::system_set_time)
+                    .service(gateway_controller::system_set_timezone)
+                    .service(gateway_controller::system_available_timezones)
+                    .service(gateway_controller::system_current_timezone)
+                    .service(gateway_controller::system_reboot)
+                    // Serial Port Manager 模块接口
+                    .service(gateway_controller::serial_available_ports)
+                    .service(gateway_controller::serial_open_port)
+                    .service(gateway_controller::serial_close_port)
+                    .service(gateway_controller::serial_set_baudrate)
+                    .service(gateway_controller::serial_available_databits)
+                    .service(gateway_controller::serial_available_parities)
+                    .service(gateway_controller::serial_available_stopbits)
+                    .service(gateway_controller::serial_available_flowcontrols)
             )
                 .service(
                     web::scope("/wx")

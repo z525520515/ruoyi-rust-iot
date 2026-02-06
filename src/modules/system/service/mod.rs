@@ -128,15 +128,13 @@ impl ServiceContext {
             .await
             .unwrap_or(0);
 
-        let mut newid: i64 = 0;
-        if max_id <= 0 {
+        let newid: i64 = if max_id <= 0 {
             let new_str = format!("{:04}{:02}{:02}{:05}", year, month, day, 1);
             let s = new_str.to_string();
-            //字符串转32位有符号整型
-            newid = s.parse::<i64>().unwrap();
+            s.parse::<i64>().unwrap()
         } else {
-            newid = max_id + 1;
-        }
+            max_id + 1
+        };
         newid.into()
     }
 }

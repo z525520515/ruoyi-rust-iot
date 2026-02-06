@@ -181,7 +181,7 @@ impl SysRoleService {
         let offset = (arg.page_no.unwrap_or(1)-1)*arg.page_size.unwrap_or(10);
         let arg: &RoleAuthUserPageDTO = &arg.set_pageoffset(offset);
         
-        dbg!(rbs::to_value!(&arg.page_size));
+        dbg!(&arg.page_size);
         let res = db_auth_user_list(pool!(), &arg).await?;
         let mut sys_users = vec![];
         for user in res {
@@ -193,7 +193,7 @@ impl SysRoleService {
         // 此处为了兼容 postgresql //需要计算offset
         let offset = (arg.page_no.unwrap_or(1)-1)*arg.page_size.unwrap_or(10);
         let arg: &RoleAuthUserPageDTO = &arg.set_pageoffset(offset);
-        dbg!(rbs::to_value!(&arg.page_size));
+        dbg!(&arg.page_size);
         let res = db_unallocated_user_list(pool!(), &arg).await?;
         let mut sys_users = vec![];
         for user in res {

@@ -2,7 +2,6 @@ use crate::config::global_variables::{
     ADMIN_NAME, CHAR_FALSE, INNER_LINK, LAYOUT, PARENT_VIEW, TYPE_DIR, TYPE_MENU,
 };
 use crate::modules::system::domain::dto::menu::MenuPageDTO;
-use rbs::to_value;
 use std::collections::BTreeMap;
 
 use crate::error::Error;
@@ -113,7 +112,7 @@ impl SysMenuService {
 		left join sys_role ro on ur.role_id = ro.role_id
 		where ur.user_id = ?
 		order by m.parent_id, m.order_num
-       ", vec![to_value!(user_id)])
+       ", vec![value!(user_id)])
             .await.unwrap();
         Ok(res.unwrap())
     }

@@ -118,7 +118,7 @@ impl SysConfigService {
     pub async fn check_config_key_unique(&self, config_id: &str, config_key: &str) -> Result<bool>
     {
         let count: u64 = pool!()
-            .query_decode("select count(1) as count from sys_config where config_id!=? and config_key =?", vec![rbs::to_value!(config_id), rbs::to_value!(config_key)])
+            .query_decode("select count(1) as count from sys_config where config_id!=? and config_key =?", vec![value!(config_id), value!(config_key)])
             .await
             .unwrap();
         Ok(count < 1)
@@ -156,7 +156,7 @@ impl SysConfigService {
         //     rbatis.get_pool().unwrap().set_max_open_conns(10).await;
 
         // let table: std::result::Result<SysConfig, rbs::Error> = rbatis
-        // .query_decode("select * from sys_config limit ?", vec![rbs::to_value!(1)])
+        // .query_decode("select * from sys_config limit ?", vec![])
         // .await
         // ;
 

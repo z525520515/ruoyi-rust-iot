@@ -30,8 +30,10 @@ static SEQUENCE_ID_BITS: u64 = 14;
 static WORKER_SHIFT_BITS: u64 = SEQUENCE_ID_BITS;
 /** 自增序列偏移位数 */
 static OFFSET_SHIFT_BITS: u64 = SEQUENCE_ID_BITS + WORKER_ID_BITS;
+#[allow(dead_code)]
 /** 机器标识最大值 (2^5 / 2 - 1 = 15) */
 static WORKER_ID_MAX: u64 = ((1 << WORKER_ID_BITS) - 1) >> 1;
+#[allow(dead_code)]
 /** 备份机器ID开始位置 (2^5 / 2 = 16) */
 static BACK_WORKER_ID_BEGIN: u64 = (1 << WORKER_ID_BITS) >> 1;
 /** 自增序列最大值 (2^16  */

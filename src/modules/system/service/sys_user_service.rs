@@ -5,7 +5,6 @@ use chrono::Local;
 use rbatis::rbdc::types::datetime::DateTime;
 use rbatis::plugin::page::PageRequest;
 use rbatis::plugin::page::Page;
-use rbs::to_value;
 use rbs::{value};
 use uuid::Uuid;
 
@@ -340,14 +339,14 @@ impl SysUserService {
     pub async fn update_password(&self, new_password: &str, user_id: &str) -> Result<u64> {
         let res =
             pool!().exec("update sys_user set password = ? where user_id = ?",
-                         vec![to_value!(new_password), to_value!(user_id)]).await.unwrap();
+                         vec![value!(new_password), value!(user_id)]).await.unwrap();
         Ok(res.rows_affected)
     }
 
     pub async fn update_status(&self, status: char, user_id: &str) -> Result<u64> {
         let res =
             pool!().exec("update sys_user set status = ? where user_id = ?",
-                         vec![to_value!(status), to_value!(user_id)]).await.unwrap();
+                         vec![value!(status), value!(user_id)]).await.unwrap();
         Ok(res.rows_affected)
     }
 }

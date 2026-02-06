@@ -27,7 +27,7 @@ pub async fn detail(id: web::Path<i64>) -> impl Responder {
 #[post("/daum")]
 #[has_permit("equipment_data:daum:add")]
 pub async fn add(arg: web::Json<EquipmentDaumAddDTO>) -> impl Responder {
-    let mut data = EquipmentData::from(arg.0);
+    let data = EquipmentData::from(arg.0);
     let res = EquipmentData::from(data);
     let data = CONTEXT.equipment_daum_service.add(&res).await.unwrap();
     RespVO::<u64>::judge(data, "".to_string(), "保存失败！".to_string()).resp_json()
@@ -36,7 +36,7 @@ pub async fn add(arg: web::Json<EquipmentDaumAddDTO>) -> impl Responder {
 #[put("/daum")]
 #[has_permit("equipment_data:daum:edit")]
 pub async fn update(arg: web::Json<EquipmentDaumUpdateDTO>) -> impl Responder {
-    let mut data = EquipmentData::from(arg.0);
+    let data = EquipmentData::from(arg.0);
     let data = CONTEXT.equipment_daum_service.update(data).await.unwrap();
     RespVO::<u64>::judge(data, "".to_string(), "更新失败！".to_string()).resp_json()
 }

@@ -45,7 +45,7 @@ pub async fn template_export() -> impl Responder {
 #[post("/import")]
 #[has_permit("equipment:installation:add")]
 pub async fn import_excel(mut payload: Multipart) -> impl Responder {
-    let mut import_list: Vec<()> = Vec::new();
+    let _import_list: Vec<()> = Vec::new();
     
     while let Some(item) = payload.next().await {
         let mut field = match item {

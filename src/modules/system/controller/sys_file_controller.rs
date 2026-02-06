@@ -19,7 +19,6 @@ struct DocumentUploadForm {
     category: Text<String>,
     #[multipart(limit = "2 KiB")]
     description: Text<String>,
-    tags: Text<String>,
     // 文件字段，限制为50MB
     #[multipart(limit = "50MB")]
     document: TempFile,

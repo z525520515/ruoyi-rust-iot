@@ -1,6 +1,6 @@
 use rbatis::plugin::page::Page;
 use rbatis::plugin::page::PageRequest;
-use rbs::to_value;
+use rbs::value;
 
 use crate::error::Error;
 use crate::error::Result;
@@ -9,7 +9,6 @@ use crate::modules::system::domain::table::SysDictType;
 use crate::modules::system::domain::vo::SysDictTypeVO;
 use crate::modules::system::service::CONTEXT;
 use crate::pool;
-use rbs::value;
 //const DICT_KEY: &'static str = "sys_dict_type:all";
 
 /// dictionary service
@@ -89,7 +88,7 @@ impl SysDictTypeService {
             let count: u64 = pool!()
                 .query_decode(
                     "select count(1) as count from sys_dict_type where dict_type =?",
-                    vec![to_value!(dict_type)],
+                    vec![value!(dict_type)],
                 )
                 .await
                 .unwrap();

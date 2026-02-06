@@ -1,13 +1,6 @@
 use actix_web::{get, web, Responder};
 
-use crate::config::global_variables::ADMIN_NAME;
-use crate::modules::system::domain::dto::user::{
-    UserAddDTO, UserPageDTO, UserRoleAuthQueryDTO, UserUpdateDTO,
-};
-use crate::modules::system::domain::table::SysUser;
-use crate::modules::system::domain::vo::{PageVO, RespJson, RespVO};
-use crate::modules::system::service::CONTEXT;
-use crate::web_data::get_user_name;
+use crate::modules::system::domain::vo::RespVO;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 struct CallbackInfo {

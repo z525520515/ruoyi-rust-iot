@@ -34,7 +34,7 @@ impl RedisService {
 }
 
 impl ICacheService for RedisService {
-    fn set_string(&self, k: &str, v: &str) -> BoxFuture<Result<String>> {
+    fn set_string(&self, k: &str, v: &str) -> BoxFuture<'_, Result<String>> {
         let k = k.to_string();
         let v = v.to_string();
         Box::pin(async move {
@@ -42,7 +42,7 @@ impl ICacheService for RedisService {
         })
     }
 
-    fn get_string(&self, k: &str) -> BoxFuture<Result<String>> {
+    fn get_string(&self, k: &str) -> BoxFuture<'_, Result<String>> {
         let k = k.to_string();
         Box::pin(async move {
             let mut conn = self.get_conn().await?;
@@ -60,7 +60,7 @@ impl ICacheService for RedisService {
     }
 
     ///set_string Automatically expire
-    fn set_string_ex(&self, k: &str, v: &str, ex: Option<Duration>) -> BoxFuture<Result<String>> {
+    fn set_string_ex(&self, k: &str, v: &str, ex: Option<Duration>) -> BoxFuture<'_, Result<String>> {
         let k = k.to_string();
         let v = v.to_string();
         Box::pin(async move {
@@ -90,7 +90,7 @@ impl ICacheService for RedisService {
     }
 
     ///get time to live
-    fn ttl(&self, k: &str) -> BoxFuture<Result<i64>> {
+    fn ttl(&self, k: &str) -> BoxFuture<'_, Result<i64>> {
         let k = k.to_string();
         Box::pin(async move {
             let mut conn = self.get_conn().await?;
@@ -103,7 +103,7 @@ impl ICacheService for RedisService {
             };
         })
     }
-    fn del(&self, k: &str) -> BoxFuture<Result<bool>> {
+    fn del(&self, k: &str) -> BoxFuture<'_, Result<bool>> {
         let k = k.to_string();
         Box::pin(async move {
             let mut conn = self.get_conn().await?;
@@ -117,7 +117,7 @@ impl ICacheService for RedisService {
         })
     }
 
-    fn keys(&self, k: &str) -> BoxFuture<Result<Vec<String>>> {
+    fn keys(&self, k: &str) -> BoxFuture<'_, Result<Vec<String>>> {
         let k = k.to_string();
         Box::pin(async move {
             let mut conn = self.get_conn().await?;
@@ -131,7 +131,7 @@ impl ICacheService for RedisService {
         })
     }
 
-    fn hgetall(&self, key: &str) -> BoxFuture<Result<Vec<String>>> {
+    fn hgetall(&self, key: &str) -> BoxFuture<'_, Result<Vec<String>>> {
         let k = key.to_string();
         Box::pin(async move {
             let mut conn = self.get_conn().await?;
@@ -145,7 +145,7 @@ impl ICacheService for RedisService {
         })
     }
 
-    fn expire(&self, k: &str, time_sec: i32) -> BoxFuture<Result<bool>> {
+    fn expire(&self, k: &str, time_sec: i32) -> BoxFuture<'_, Result<bool>> {
         let k = k.to_string();
         Box::pin(async move {
             let mut conn = self.get_conn().await?;
@@ -160,7 +160,7 @@ impl ICacheService for RedisService {
     }
 
     //从在db插入
-    fn hset(&self, k: &str, f: &str, v: &str) -> BoxFuture<Result<u64>> {
+    fn hset(&self, k: &str, f: &str, v: &str) -> BoxFuture<'_, Result<u64>> {
         let k = k.to_string();
         let f = f.to_string();
         let v = v.to_string();
@@ -182,7 +182,7 @@ impl ICacheService for RedisService {
             }
         })
     }
-    fn select(&self, db: &str) -> BoxFuture<Result<()>> {
+    fn select(&self, db: &str) -> BoxFuture<'_, Result<()>> {
         let db = db.to_string();
         Box::pin(async move {
             let mut conn = self.get_conn().await?;

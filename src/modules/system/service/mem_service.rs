@@ -39,7 +39,7 @@ impl Default for MemService {
 }
 
 impl ICacheService for MemService {
-    fn set_string(&self, k: &str, v: &str) -> BoxFuture<Result<String>> {
+    fn set_string(&self, k: &str, v: &str) -> BoxFuture<'_, Result<String>> {
         self.recycling();
         let k = k.to_string();
         let v = v.to_string();
@@ -50,7 +50,7 @@ impl ICacheService for MemService {
         })
     }
 
-    fn get_string(&self, k: &str) -> BoxFuture<Result<String>> {
+    fn get_string(&self, k: &str) -> BoxFuture<'_, Result<String>> {
         self.recycling();
         let k = k.to_string();
         let guard = self.cache.lock();
@@ -61,7 +61,7 @@ impl ICacheService for MemService {
         Box::pin(async move { Ok(v) })
     }
 
-    fn set_string_ex(&self, k: &str, v: &str, t: Option<Duration>) -> BoxFuture<Result<String>> {
+    fn set_string_ex(&self, k: &str, v: &str, t: Option<Duration>) -> BoxFuture<'_, Result<String>> {
         self.recycling();
         let k = k.to_string();
         let v = v.to_string();
@@ -81,7 +81,7 @@ impl ICacheService for MemService {
         })
     }
 
-    fn ttl(&self, k: &str) -> BoxFuture<Result<i64>> {
+    fn ttl(&self, k: &str) -> BoxFuture<'_, Result<i64>> {
         self.recycling();
         let locked = self.cache.lock();
         let v = locked.get(k).cloned();
@@ -103,7 +103,7 @@ impl ICacheService for MemService {
         Box::pin(async move { Ok(v) })
     }
 
-    fn del(&self, k: &str) -> BoxFuture<Result<bool>> {
+    fn del(&self, k: &str) -> BoxFuture<'_, Result<bool>> {
         self.recycling();
         let mut locked = self.cache.lock();
         let v = locked.remove(k);
@@ -115,22 +115,22 @@ impl ICacheService for MemService {
         Box::pin(async move { Ok(v) })
     }
 
-    fn keys(&self, k: &str) -> BoxFuture<Result<Vec<String>>> {
+    fn keys(&self, k: &str) -> BoxFuture<'_, Result<Vec<String>>> {
         Box::pin(async move { Err(crate::error::Error::from("not implemented!")) })
     }
-    fn hgetall(&self, k: &str) -> BoxFuture<Result<Vec<String>>> {
-        Box::pin(async move { Err(crate::error::Error::from("not implemented!")) })
-    }
-
-    fn expire(&self, k: &str, time_sec: i32) -> BoxFuture<Result<bool>> {
+    fn hgetall(&self, k: &str) -> BoxFuture<'_, Result<Vec<String>>> {
         Box::pin(async move { Err(crate::error::Error::from("not implemented!")) })
     }
 
-    fn hset(&self, k: &str, f: &str, v: &str) -> BoxFuture<Result<u64>> {
+    fn expire(&self, k: &str, time_sec: i32) -> BoxFuture<'_, Result<bool>> {
         Box::pin(async move { Err(crate::error::Error::from("not implemented!")) })
     }
 
-    fn select(&self, db: &str) -> BoxFuture<Result<()>> {
+    fn hset(&self, k: &str, f: &str, v: &str) -> BoxFuture<'_, Result<u64>> {
+        Box::pin(async move { Err(crate::error::Error::from("not implemented!")) })
+    }
+
+    fn select(&self, db: &str) -> BoxFuture<'_, Result<()>> {
         Box::pin(async move { Err(crate::error::Error::from("not implemented!")) })
     }
 }

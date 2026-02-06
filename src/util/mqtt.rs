@@ -3,7 +3,6 @@ use log::{error, info};
 use rumqttc::{AsyncClient, Event, MqttOptions, Packet, Publish, QoS};
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
-use std::sync::Arc;
 use dashmap::DashMap;
 use tokio::sync::oneshot;
 use serde_json::{json, Value};
@@ -15,12 +14,10 @@ use either::Either;
 
 // 假设您的配置路径如下，请根据实际情况调整
 use crate::config::config::MqttConfig;
-use crate::modules::system::service::CONTEXT;
 use crate::modules::equipment_data::domain::table::tables::EquipmentData;
 
 // DEVICE_PROTO 协议解析
 use DEVICE_PROTO::dev_frame::DevFrame;
-use DEVICE_PROTO::frame::error::ParseError;
 
 use crate::util::iot_data::IotData;
 
@@ -324,7 +321,7 @@ impl MqttManager {
 
         let iot_client = client.clone();
         let iot_device_id = device_id_str.clone();
-        let iot_device_type = device_type_name.clone();
+        let iot_device_type = device_type_name;
         let iot_equipment_name = format!("设备-{}", &device_id_str[..8]);
         let iot_signal = signal_dbm;
         let iot_battery = power_level;

@@ -99,7 +99,7 @@ impl SysDictDataService {
         //     rbatis.get_pool().unwrap().set_max_open_conns(10).await;
 
         // let table: std::result::Result<SysDictData, rbs::Error> = rbatis
-        // .query_decode("select * from sys_dict_data limit ?", vec![rbs::to_value!(1)])
+        // .query_decode("select * from sys_dict_data limit ?", vec![])
         // .await
         // ;
 

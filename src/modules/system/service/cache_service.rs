@@ -8,25 +8,25 @@ use serde::Serialize;
 use std::time::Duration;
 
 pub trait ICacheService: Sync + Send {
-    fn set_string(&self, k: &str, v: &str) -> BoxFuture<Result<String>>;
+    fn set_string(&self, k: &str, v: &str) -> BoxFuture<'_, Result<String>>;
 
-    fn get_string(&self, k: &str) -> BoxFuture<Result<String>>;
+    fn get_string(&self, k: &str) -> BoxFuture<'_, Result<String>>;
 
-    fn set_string_ex(&self, k: &str, v: &str, ex: Option<Duration>) -> BoxFuture<Result<String>>;
+    fn set_string_ex(&self, k: &str, v: &str, ex: Option<Duration>) -> BoxFuture<'_, Result<String>>;
 
-    fn ttl(&self, k: &str) -> BoxFuture<Result<i64>>;
+    fn ttl(&self, k: &str) -> BoxFuture<'_, Result<i64>>;
 
-    fn del(&self, k: &str) -> BoxFuture<Result<bool>>;
+    fn del(&self, k: &str) -> BoxFuture<'_, Result<bool>>;
 
-    fn keys(&self, k: &str) -> BoxFuture<Result<Vec<String>>>;
+    fn keys(&self, k: &str) -> BoxFuture<'_, Result<Vec<String>>>;
 
-    fn hgetall(&self, k: &str) -> BoxFuture<Result<Vec<String>>>;
+    fn hgetall(&self, k: &str) -> BoxFuture<'_, Result<Vec<String>>>;
 
-    fn expire(&self, k: &str, time_sec: i32) -> BoxFuture<Result<bool>>;
+    fn expire(&self, k: &str, time_sec: i32) -> BoxFuture<'_, Result<bool>>;
     //从在db插入
-    fn hset(&self, k: &str, f: &str, v: &str) -> BoxFuture<Result<u64>>;
+    fn hset(&self, k: &str, f: &str, v: &str) -> BoxFuture<'_, Result<u64>>;
     //切换Db
-    fn select(&self, db: &str) -> BoxFuture<Result<()>>;
+    fn select(&self, db: &str) -> BoxFuture<'_, Result<()>>;
 }
 
 pub struct CacheService {

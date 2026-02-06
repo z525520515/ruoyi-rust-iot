@@ -1,5 +1,5 @@
-use axum::{extract::State, Json};
-use axum::{routing::post, Router};
+use axum::extract::State;
+use axum::Json;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -8,7 +8,6 @@ use std::time::Duration;
 use tokio::sync::oneshot;
 use rumqttc::{AsyncClient, Event, MqttOptions, Packet, QoS};
 use log::{error, info};
-use uuid::Uuid;
 
 // ========== 1. 协议模型 (基于 README.md) ==========
 
@@ -113,6 +112,7 @@ impl MqttManager {
 
 // ========== 4. HTTP 路由处理函数 ==========
 
+#[allow(dead_code)]
 async fn invoke_gateway(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<HttpInvokeParams>,
@@ -123,7 +123,8 @@ async fn invoke_gateway(
     // 2. 准备主题路径 (README: {topicPrefix}/protocol_stack/${type}/${name}/${action}/request)
     // 注意：topicPrefix 需要百分号编码，此处简化演示
     let encoded_hash = urlencoding::encode(&state.device_hash);
-    let topic_prefix = format!("{}/ReservedClient", encoded_hash);
+    // TODO: 目前是测试阶段后续生产系统更换为ReservedClient
+    let topic_prefix = format!("{}/test_mqtt", encoded_hash);
     let request_topic = format!(
         "{}/protocol_stack/{}/{}/{}/request",
         topic_prefix, payload.protocol_type, payload.stack_name, payload.action

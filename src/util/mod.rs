@@ -8,4 +8,4 @@ pub mod hardware;
 pub mod idseq;
 pub mod mqtt;
 pub mod iot_data;
-mod topic_builder;
+pub mod topic_builder;

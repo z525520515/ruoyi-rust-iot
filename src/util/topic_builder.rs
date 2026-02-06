@@ -1,6 +1,7 @@
 use anyhow::Result;
 use urlencoding::encode;
 
+#[allow(dead_code)]
 pub struct TopicBuilder {
     device_hash: String,
     client_name: String,
