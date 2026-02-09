@@ -1,32 +1,25 @@
 use anyhow::Result;
-use log::{error, info};
-use rumqttc::{AsyncClient, Event, MqttOptions, Packet, Publish, QoS};
-use std::time::Duration;
-use tokio::time::{sleep, timeout};
 use dashmap::DashMap;
-use tokio::sync::oneshot;
-use serde_json::{json, Value};
+use log::{error, info};
 use once_cell::sync::Lazy;
 use rbatis::rbdc::datetime::DateTime;
 use rbatis::snowflake::new_snowflake_id;
 use rbs::value;
+use rumqttc::{AsyncClient, Event, MqttOptions, Packet, Publish, QoS};
+use serde_json::{json, Value};
+use std::time::Duration;
+use tokio::sync::oneshot;
+use tokio::time::{sleep, timeout};
 
 // 假设您的配置路径如下，请根据实际情况调整
 use crate::config::config::MqttConfig;
-use crate::modules::equipment_data::domain::table::tables::EquipmentData;
-use crate::modules::equipment::domain::table::tables::EquipmentInstallation;
 use crate::config::linker_request_header::{
-    build_request_header,
-    build_request_payload,
-    build_request_topic,
-    build_response_topic,
-    build_topic_prefix,
-    current_timestamp_ms,
-    generate_transaction_id,
-    DEFAULT_CLIENT_NAME,
-    DEFAULT_REQUEST_SOURCE,
-    DEFAULT_TIMEOUT_MS,
+    build_request_header, build_request_payload, build_request_topic, build_response_topic,
+    build_topic_prefix, current_timestamp_ms, generate_transaction_id, DEFAULT_CLIENT_NAME,
+    DEFAULT_REQUEST_SOURCE, DEFAULT_TIMEOUT_MS,
 };
+use crate::modules::equipment::domain::table::tables::EquipmentInstallation;
+use crate::modules::equipment_data::domain::table::tables::EquipmentData;
 
 // DEVICE_PROTO 协议解析
 use DEVICE_PROTO::dev_frame::DevFrame;
@@ -55,7 +48,9 @@ impl MqttManager {
         }
 
         let (client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
-        let manager = Self { client: client.clone() };
+        let manager = Self {
+            client: client.clone(),
+        };
 
         // 启动后台事件监听线程
         tokio::spawn(async move {
@@ -101,7 +96,7 @@ impl MqttManager {
 
     pub async fn gateway_invoke(
         &self,
-        device_hash: &str,    // README 中的 deviceUniqueIDHash (Base64)
+        device_hash: &str,   // README 中的 deviceUniqueIDHash (Base64)
         protocol_type: &str, // 如 "Control"
         stack_name: &str,    // 如 "ReservedControlProtocolStack"
         action: &str,        // 指令动作
@@ -155,26 +150,20 @@ impl MqttManager {
         // 3. 构造 Topic (对 Hash 进行 URL 编码以防特殊字符)
         let client_name = client_name.unwrap_or(DEFAULT_CLIENT_NAME);
         let topic_prefix = build_topic_prefix(device_hash, client_name);
-        let request_topic = build_request_topic(
-            &topic_prefix,
-            protocol_type,
-            stack_name,
-            action,
-        );
-        let response_topic = build_response_topic(
-            &topic_prefix,
-            protocol_type,
-            stack_name,
-            action,
-        );
+        let request_topic = build_request_topic(&topic_prefix, protocol_type, stack_name, action);
+        let response_topic = build_response_topic(&topic_prefix, protocol_type, stack_name, action);
 
         // 4. 在全局等待队列中注册
         let (tx, rx) = oneshot::channel();
         PENDING_REQUESTS.insert(tid, tx);
 
         // 5. 发布 MQTT 消息
-        self.client.subscribe(&response_topic, QoS::AtMostOnce).await?;
-        self.client.publish(&request_topic, QoS::AtLeastOnce, false, payload_bytes).await?;
+        self.client
+            .subscribe(&response_topic, QoS::AtMostOnce)
+            .await?;
+        self.client
+            .publish(&request_topic, QoS::AtLeastOnce, false, payload_bytes)
+            .await?;
 
         // 6. 等待回包 (设置 10 秒超时)
         match timeout(Duration::from_millis(request_timeout), rx).await {
@@ -210,7 +199,6 @@ impl MqttManager {
             Self::handle_device_message(client, topic, payload).await;
         });
     }
-
 
     async fn handle_device_message(client: AsyncClient, topic: String, payload: Vec<u8>) {
         if let Some(protocol) = Self::resolve_device_protocol(&topic).await {
@@ -278,7 +266,6 @@ impl MqttManager {
         }
     }
 
-
     fn try_parse_dev_proto(payload: &[u8]) -> Option<DevFrame> {
         // 尝试将 payload 解析为 DEVICE_PROTO 帧
         match DevFrame::from_bytes(payload) {
@@ -297,7 +284,6 @@ impl MqttManager {
             }
         }
     }
-
 
     fn try_parse_s909_proto(payload: &[u8]) -> Option<S909UP> {
         match S909UP::from_bytes(payload) {
@@ -320,7 +306,10 @@ impl MqttManager {
         let device_id_str = frame.device_id.to_string();
         let device_type_name = frame.device_type.info().name;
 
-        info!("📡 收到设备数据: id={}, type={}", device_id_str, device_type_name);
+        info!(
+            "📡 收到设备数据: id={}, type={}",
+            device_id_str, device_type_name
+        );
 
         let signal_dbm = frame.signal_strength.get_dbm();
         let power_level = frame.power_status.level.get_level();
@@ -337,12 +326,14 @@ impl MqttManager {
                 let params: Vec<serde_json::Value> = device_data
                     .get_parameters()
                     .iter()
-                    .map(|p| json!({
-                        "name": p.parameter_name,
-                        "physical_value": p.physical_value,
-                        "unit": p.unit,
-                        "raw_value": format!("{:?}", p.raw_value),
-                    }))
+                    .map(|p| {
+                        json!({
+                            "name": p.parameter_name,
+                            "physical_value": p.physical_value,
+                            "unit": p.unit,
+                            "raw_value": format!("{:?}", p.raw_value),
+                        })
+                    })
                     .collect();
                 json!({
                     "type": "device_data",
@@ -370,11 +361,13 @@ impl MqttManager {
                         let params: Vec<serde_json::Value> = device_data
                             .get_parameters()
                             .iter()
-                            .map(|p| json!({
-                                "name": p.parameter_name,
-                                "physical_value": p.physical_value,
-                                "unit": p.unit,
-                            }))
+                            .map(|p| {
+                                json!({
+                                    "name": p.parameter_name,
+                                    "physical_value": p.physical_value,
+                                    "unit": p.unit,
+                                })
+                            })
                             .collect();
                         json!({
                             "type": "device_data",
@@ -396,61 +389,64 @@ impl MqttManager {
             .collect();
 
         let full_device_data = json!({
-             "frame_info": {
-                 "command_type": format!("0x{:02X}", frame.command_type),
-                 "frame_length": frame.frame_length.len(),
-                 "crc": frame.crc,
-             },
-             "device": {
-                 "id": device_id_str,
-                 "type_code": frame.device_type.to_u8(),
-                 "type_name": device_type_name,
-             },
-             "power": {
-                 "level": power_level,
-                 "is_external_power": is_external_power,
-                 "source": format!("{:?}", frame.power_status.source),
-             },
-             "signal": {
-                 "value": signal_dbm,
-                 "unit": "dBm",
-             },
-             "alarm": {
-                 "status": alarm_status,
-                 "info": format!("{:?}", alarm_info),
-                 "parameters": {
-                     "alarm_group": frame.alarm_parameters.get_alarm_group(),
-                     "lower_limit_0": frame.alarm_parameters.get_alarm_lower_limit(0).map(|v| format!("{:?}", v)),
-                     "upper_limit_0": frame.alarm_parameters.get_alarm_upper_limit(0).map(|v| format!("{:?}", v)),
-                     "lower_limit_1": frame.alarm_parameters.get_alarm_lower_limit(1).map(|v| format!("{:?}", v)),
-                     "upper_limit_1": frame.alarm_parameters.get_alarm_upper_limit(1).map(|v| format!("{:?}", v)),
-                 }
-             },
-             "data_record": {
-                 "interval_seconds": data_record_interval,
-                 "count": data_record_count,
-             },
-             "current_data": current_data_value,
-             "timestamp": timestamp_str,
-             "cache_data": cache_data_json,
-         });
+            "frame_info": {
+                "command_type": format!("0x{:02X}", frame.command_type),
+                "frame_length": frame.frame_length.len(),
+                "crc": frame.crc,
+            },
+            "device": {
+                "id": device_id_str,
+                "type_code": frame.device_type.to_u8(),
+                "type_name": device_type_name,
+            },
+            "power": {
+                "level": power_level,
+                "is_external_power": is_external_power,
+                "source": format!("{:?}", frame.power_status.source),
+            },
+            "signal": {
+                "value": signal_dbm,
+                "unit": "dBm",
+            },
+            "alarm": {
+                "status": alarm_status,
+                "info": format!("{:?}", alarm_info),
+                "parameters": {
+                    "alarm_group": frame.alarm_parameters.get_alarm_group(),
+                    "lower_limit_0": frame.alarm_parameters.get_alarm_lower_limit(0).map(|v| format!("{:?}", v)),
+                    "upper_limit_0": frame.alarm_parameters.get_alarm_upper_limit(0).map(|v| format!("{:?}", v)),
+                    "lower_limit_1": frame.alarm_parameters.get_alarm_lower_limit(1).map(|v| format!("{:?}", v)),
+                    "upper_limit_1": frame.alarm_parameters.get_alarm_upper_limit(1).map(|v| format!("{:?}", v)),
+                }
+            },
+            "data_record": {
+                "interval_seconds": data_record_interval,
+                "count": data_record_count,
+            },
+            "current_data": current_data_value,
+            "timestamp": timestamp_str,
+            "cache_data": cache_data_json,
+        });
 
-        info!("📊 完整设备数据:\n{}", serde_json::to_string_pretty(&full_device_data).unwrap());
+        info!(
+            "📊 完整设备数据:\n{}",
+            serde_json::to_string_pretty(&full_device_data).unwrap()
+        );
 
         let equipment_data = EquipmentData {
-             id: Some(new_snowflake_id() as i64),
-             equipment_number: Some(device_id_str.clone()),
-             equipment_name: Some(format!("??-{}", &device_id_str[..8])),
-             device_category: Some(device_type_name.to_string()),
-             upload_time: Some(DateTime::now().into()),
-             battery_level: Some(power_level as f64),
-             signal_strength: Some(signal_dbm as i32),
-             alarm_status: Some(alarm_status as i32),
-             payload: Some(full_device_data.clone()),
-             dept_id: None,
-             remark: None,
-             create_time: Some(DateTime::now().into()),
-         };
+            id: Some(new_snowflake_id() as i64),
+            equipment_number: Some(device_id_str.clone()),
+            equipment_name: Some(format!("??-{}", &device_id_str[..8])),
+            device_category: Some(device_type_name.to_string()),
+            upload_time: Some(DateTime::now().into()),
+            battery_level: Some(power_level as f64),
+            signal_strength: Some(signal_dbm as i32),
+            alarm_status: Some(alarm_status as i32),
+            payload: Some(full_device_data.clone()),
+            dept_id: None,
+            remark: None,
+            create_time: Some(DateTime::now().into()),
+        };
 
         let iot_client = client.clone();
         let iot_device_id = device_id_str.clone();
@@ -470,9 +466,7 @@ impl MqttManager {
                     Some(String::new())
                 }
             }
-            either::Either::Right(_) => {
-                Some(format!("{:?}", frame.current_device_data))
-            }
+            either::Either::Right(_) => Some(format!("{:?}", frame.current_device_data)),
         };
 
         tokio::spawn(async move {
@@ -487,20 +481,32 @@ impl MqttManager {
             iot_data.gateway_id = None;
             iot_data.device_type = Some(iot_device_type.to_string());
             iot_data.extension_tag = None;
-            iot_data.event_time = Some(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string());
+            iot_data.event_time =
+                Some(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string());
             iot_data.location = Some(iot_equipment_name);
             iot_data.value = iot_value;
             iot_data.alarm_condition = None;
-            iot_data.alarm_status = if iot_alarm_status > 0 { Some("1".to_string()) } else { Some("0".to_string()) };
+            iot_data.alarm_status = if iot_alarm_status > 0 {
+                Some("1".to_string())
+            } else {
+                Some("0".to_string())
+            };
             iot_data.master_machine = None;
-            iot_data.alarm_remark = if iot_alarm_status > 0 { Some(iot_alarm_info) } else { None };
+            iot_data.alarm_remark = if iot_alarm_status > 0 {
+                Some(iot_alarm_info)
+            } else {
+                None
+            };
             iot_data.battery = Some(iot_battery.to_string());
             iot_data.rssi = Some(iot_signal.to_string());
 
             let iot_payload = serde_json::to_string(&iot_data).unwrap_or_default();
             let topic = format!("iot/iot/{}/data", iot_device_id);
 
-            if let Err(e) = iot_client.publish(&topic, QoS::AtLeastOnce, false, iot_payload.into_bytes()).await {
+            if let Err(e) = iot_client
+                .publish(&topic, QoS::AtLeastOnce, false, iot_payload.into_bytes())
+                .await
+            {
                 error!("❌ IotData 转发失败: {}", e);
             } else {
                 info!("✅ IotData 转发成功: topic={}", topic);
@@ -512,18 +518,27 @@ impl MqttManager {
         let device_id_str = frame.device_id.to_string();
         let device_type_name = frame.device_type.info().name;
 
-        info!("S909 device data: id={}, type={}", device_id_str, device_type_name);
+        info!(
+            "S909 device data: id={}, type={}",
+            device_id_str, device_type_name
+        );
 
         let signal_dbm = frame.signal_strength.get_dbm();
         let power_level = frame.power_status.level.get_level();
         let alarm_status = frame.device_alarm_status.to_u8();
-        let alarm_info = frame.device_alarm_status.interpret(frame.device_type.clone());
+        let alarm_info = frame
+            .device_alarm_status
+            .interpret(frame.device_type.clone());
 
-        let unit_value = frame
+        use DEVICE_PROTO::frame::UnitParseResult;
+        let unit_value = match &frame
             .unit_value
             .get_res()
-            .map(|res| format!("{:?}", res))
-            .unwrap_or_default();
+            .expect("Failed to parse unit value")
+        {
+            UnitParseResult::CaseList(data) => data.clone(),
+            UnitParseResult::Msg(msg) => vec![msg.clone()],
+        };
 
         let full_device_data = json!({
             "frame_info": {
@@ -553,14 +568,19 @@ impl MqttManager {
                 "id": frame.channel_id.to_u8(),
                 "type": format!("{:?}", frame.channel_type),
                 "data_length": frame.channel_data_length.to_u16(),
-                "data_bytes": format!("{:?}", frame.channel_data.to_bytes()),
+                "data_bytes": format!("[{:?}]{:16b}", frame.channel_data.to_bytes(), frame.channel_data.channels_mask().unwrap_or(0)),
+                // "data_bytes": format!("{:16b}", frame.channel_data.channels_mask().unwrap_or(0)),
                 "unit_value": unit_value,
+                "unit_value_bytes": frame.unit_value.to_bytes(),
             },
             "timestamp": frame.timestamp.to_formatted_string(),
         });
 
-        info!("S909 full device data:
-{}", serde_json::to_string_pretty(&full_device_data).unwrap());
+        info!(
+            "S909 full device data:
+{}",
+            serde_json::to_string_pretty(&full_device_data).unwrap()
+        );
 
         let equipment_data = EquipmentData {
             id: Some(new_snowflake_id() as i64),
@@ -585,7 +605,11 @@ impl MqttManager {
         let iot_battery = power_level;
         let iot_alarm_status = alarm_status;
         let iot_alarm_info = format!("{:?}", alarm_info);
-        let iot_value = if unit_value.is_empty() { None } else { Some(unit_value) };
+        let iot_value = if unit_value.is_empty() {
+            None
+        } else {
+            Some(unit_value.join(", "))
+        };
 
         tokio::spawn(async move {
             if let Err(e) = EquipmentData::insert(crate::pool!(), &equipment_data).await {
@@ -599,20 +623,32 @@ impl MqttManager {
             iot_data.gateway_id = None;
             iot_data.device_type = Some(iot_device_type.to_string());
             iot_data.extension_tag = None;
-            iot_data.event_time = Some(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string());
+            iot_data.event_time =
+                Some(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string());
             iot_data.location = Some(iot_equipment_name);
             iot_data.value = iot_value;
             iot_data.alarm_condition = None;
-            iot_data.alarm_status = if iot_alarm_status > 0 { Some("1".to_string()) } else { Some("0".to_string()) };
+            iot_data.alarm_status = if iot_alarm_status > 0 {
+                Some("1".to_string())
+            } else {
+                Some("0".to_string())
+            };
             iot_data.master_machine = None;
-            iot_data.alarm_remark = if iot_alarm_status > 0 { Some(iot_alarm_info) } else { None };
+            iot_data.alarm_remark = if iot_alarm_status > 0 {
+                Some(iot_alarm_info)
+            } else {
+                None
+            };
             iot_data.battery = Some(iot_battery.to_string());
             iot_data.rssi = Some(iot_signal.to_string());
 
             let iot_payload = serde_json::to_string(&iot_data).unwrap_or_default();
             let topic = format!("iot/iot/{}/data", iot_device_id);
 
-            if let Err(e) = iot_client.publish(&topic, QoS::AtLeastOnce, false, iot_payload.into_bytes()).await {
+            if let Err(e) = iot_client
+                .publish(&topic, QoS::AtLeastOnce, false, iot_payload.into_bytes())
+                .await
+            {
                 error!("IotData publish failed: {}", e);
             } else {
                 info!("IotData publish ok: topic={}", topic);
