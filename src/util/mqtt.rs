@@ -9,10 +9,12 @@ use serde_json::{json, Value};
 use once_cell::sync::Lazy;
 use rbatis::rbdc::datetime::DateTime;
 use rbatis::snowflake::new_snowflake_id;
+use rbs::value;
 
 // 假设您的配置路径如下，请根据实际情况调整
 use crate::config::config::MqttConfig;
 use crate::modules::equipment_data::domain::table::tables::EquipmentData;
+use crate::modules::equipment::domain::table::tables::EquipmentInstallation;
 use crate::config::linker_request_header::{
     build_request_header,
     build_request_payload,
@@ -28,6 +30,7 @@ use crate::config::linker_request_header::{
 
 // DEVICE_PROTO 协议解析
 use DEVICE_PROTO::dev_frame::DevFrame;
+use DEVICE_PROTO::s909pro::S909UP;
 
 use crate::util::iot_data::IotData;
 
@@ -200,16 +203,81 @@ impl MqttManager {
         }
 
         // 尝试作为 DEVICE_PROTO 协议解析
-        if let Some(parsed_data) = Self::try_parse_dev_proto(payload_bytes) {
-            info!("✅ DEVICE_PROTO 解析成功: device_id={:?}", parsed_data.device_id);
-            Self::process_device_data(client, parsed_data);
-            return;
+        let client = client.clone();
+        let topic = publish.topic.clone();
+        let payload = publish.payload.to_vec();
+        tokio::spawn(async move {
+            Self::handle_device_message(client, topic, payload).await;
+        });
+    }
+
+
+    async fn handle_device_message(client: AsyncClient, topic: String, payload: Vec<u8>) {
+        if let Some(protocol) = Self::resolve_device_protocol(&topic).await {
+            match protocol {
+                DeviceProtocol::DevFrames => {
+                    if let Some(parsed_data) = Self::try_parse_dev_proto(&payload) {
+                        info!("DEVICE_PROTO parsed: device_id={:?}", parsed_data.device_id);
+                        Self::process_device_data(&client, parsed_data);
+                        return;
+                    }
+                }
+                DeviceProtocol::S909 => {
+                    if let Some(parsed_data) = Self::try_parse_s909_proto(&payload) {
+                        info!("S909 parsed: device_id={:?}", parsed_data.device_id);
+                        Self::process_s909_data(&client, parsed_data);
+                        return;
+                    }
+                }
+                DeviceProtocol::Other(_) => {}
+            }
         }
 
-        // 普通文本消息
-        let payload_str = String::from_utf8_lossy(payload_bytes);
-        info!("📩 收到普通 MQTT 消息: Topic={}, Payload={}", publish.topic, payload_str);
+        let payload_str = String::from_utf8_lossy(&payload);
+        info!("MQTT message: topic={}, payload={}", topic, payload_str);
     }
+
+    async fn resolve_device_protocol(topic: &str) -> Option<DeviceProtocol> {
+        const DEV_PREFIX: &str = "GIOT-GW/UL/";
+        if topic.starts_with(DEV_PREFIX) {
+            let device_number = topic[DEV_PREFIX.len()..]
+                .split('/')
+                .next()
+                .unwrap_or_default();
+            if device_number.is_empty() {
+                return Some(DeviceProtocol::DevFrames);
+            }
+
+            match EquipmentInstallation::select_by_map(
+                crate::pool!(),
+                value! { "equipment_number": device_number },
+            )
+            .await
+            {
+                Ok(rows) => {
+                    if let Some(row) = rows.into_iter().next() {
+                        let communication = row.communication_means.unwrap_or_default();
+                        let communication_lower = communication.to_ascii_lowercase();
+                        if communication_lower.contains("s909") {
+                            return Some(DeviceProtocol::S909);
+                        }
+                        if communication_lower.contains("mk") {
+                            return Some(DeviceProtocol::DevFrames);
+                        }
+                        return Some(DeviceProtocol::DevFrames);
+                    }
+                    Some(DeviceProtocol::DevFrames)
+                }
+                Err(e) => {
+                    error!("MQTT protocol lookup failed: {}", e);
+                    Some(DeviceProtocol::DevFrames)
+                }
+            }
+        } else {
+            Some(DeviceProtocol::Other(topic.to_string()))
+        }
+    }
+
 
     fn try_parse_dev_proto(payload: &[u8]) -> Option<DevFrame> {
         // 尝试将 payload 解析为 DEVICE_PROTO 帧
@@ -220,6 +288,24 @@ impl MqttManager {
                 if let Ok(hex_str) = std::str::from_utf8(payload) {
                     if let Ok(bytes) = hex_from_str(hex_str) {
                         return match DevFrame::from_bytes(&bytes) {
+                            Ok(frame) => Some(frame),
+                            Err(_) => None,
+                        };
+                    }
+                }
+                None
+            }
+        }
+    }
+
+
+    fn try_parse_s909_proto(payload: &[u8]) -> Option<S909UP> {
+        match S909UP::from_bytes(payload) {
+            Ok(frame) => Some(frame),
+            Err(_) => {
+                if let Ok(hex_str) = std::str::from_utf8(payload) {
+                    if let Ok(bytes) = hex_from_str(hex_str) {
+                        return match S909UP::from_bytes(&bytes) {
                             Ok(frame) => Some(frame),
                             Err(_) => None,
                         };
@@ -354,7 +440,7 @@ impl MqttManager {
         let equipment_data = EquipmentData {
              id: Some(new_snowflake_id() as i64),
              equipment_number: Some(device_id_str.clone()),
-             equipment_name: Some(format!("设备-{}", &device_id_str[..8])),
+             equipment_name: Some(format!("??-{}", &device_id_str[..8])),
              device_category: Some(device_type_name.to_string()),
              upload_time: Some(DateTime::now().into()),
              battery_level: Some(power_level as f64),
@@ -369,7 +455,7 @@ impl MqttManager {
         let iot_client = client.clone();
         let iot_device_id = device_id_str.clone();
         let iot_device_type = device_type_name;
-        let iot_equipment_name = format!("设备-{}", &device_id_str[..8]);
+        let iot_equipment_name = format!("??-{}", &device_id_str[..8]);
         let iot_signal = signal_dbm;
         let iot_battery = power_level;
         let iot_alarm_status = alarm_status;
@@ -421,6 +507,124 @@ impl MqttManager {
             }
         });
     }
+
+    fn process_s909_data(client: &AsyncClient, mut frame: S909UP) {
+        let device_id_str = frame.device_id.to_string();
+        let device_type_name = frame.device_type.info().name;
+
+        info!("S909 device data: id={}, type={}", device_id_str, device_type_name);
+
+        let signal_dbm = frame.signal_strength.get_dbm();
+        let power_level = frame.power_status.level.get_level();
+        let alarm_status = frame.device_alarm_status.to_u8();
+        let alarm_info = frame.device_alarm_status.interpret(frame.device_type.clone());
+
+        let unit_value = frame
+            .unit_value
+            .get_res()
+            .map(|res| format!("{:?}", res))
+            .unwrap_or_default();
+
+        let full_device_data = json!({
+            "frame_info": {
+                "command_type": format!("0x{:02X}", frame.command_type),
+                "frame_length": frame.frame_length.len(),
+                "crc": frame.crc,
+            },
+            "device": {
+                "id": device_id_str,
+                "type_code": frame.device_type.to_u8(),
+                "type_name": device_type_name,
+            },
+            "power": {
+                "level": power_level,
+                "is_external_power": frame.power_status.is_external_power,
+                "source": format!("{:?}", frame.power_status.source),
+            },
+            "signal": {
+                "value": signal_dbm,
+                "unit": "dBm",
+            },
+            "alarm": {
+                "status": alarm_status,
+                "info": format!("{:?}", alarm_info),
+            },
+            "channel": {
+                "id": frame.channel_id.to_u8(),
+                "type": format!("{:?}", frame.channel_type),
+                "data_length": frame.channel_data_length.to_u16(),
+                "data_bytes": format!("{:?}", frame.channel_data.to_bytes()),
+                "unit_value": unit_value,
+            },
+            "timestamp": frame.timestamp.to_formatted_string(),
+        });
+
+        info!("S909 full device data:
+{}", serde_json::to_string_pretty(&full_device_data).unwrap());
+
+        let equipment_data = EquipmentData {
+            id: Some(new_snowflake_id() as i64),
+            equipment_number: Some(device_id_str.clone()),
+            equipment_name: Some(format!("device-{}", &device_id_str[..8])),
+            device_category: Some(device_type_name.to_string()),
+            upload_time: Some(DateTime::now().into()),
+            battery_level: Some(power_level as f64),
+            signal_strength: Some(signal_dbm as i32),
+            alarm_status: Some(alarm_status as i32),
+            payload: Some(full_device_data.clone()),
+            dept_id: None,
+            remark: None,
+            create_time: Some(DateTime::now().into()),
+        };
+
+        let iot_client = client.clone();
+        let iot_device_id = device_id_str.clone();
+        let iot_device_type = device_type_name;
+        let iot_equipment_name = format!("device-{}", &device_id_str[..8]);
+        let iot_signal = signal_dbm;
+        let iot_battery = power_level;
+        let iot_alarm_status = alarm_status;
+        let iot_alarm_info = format!("{:?}", alarm_info);
+        let iot_value = if unit_value.is_empty() { None } else { Some(unit_value) };
+
+        tokio::spawn(async move {
+            if let Err(e) = EquipmentData::insert(crate::pool!(), &equipment_data).await {
+                error!("S909 save device data failed: {}", e);
+            } else {
+                info!("S909 device data saved: {}", device_id_str);
+            }
+
+            let mut iot_data = IotData::new();
+            iot_data.device_id = Some(iot_device_id.clone());
+            iot_data.gateway_id = None;
+            iot_data.device_type = Some(iot_device_type.to_string());
+            iot_data.extension_tag = None;
+            iot_data.event_time = Some(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string());
+            iot_data.location = Some(iot_equipment_name);
+            iot_data.value = iot_value;
+            iot_data.alarm_condition = None;
+            iot_data.alarm_status = if iot_alarm_status > 0 { Some("1".to_string()) } else { Some("0".to_string()) };
+            iot_data.master_machine = None;
+            iot_data.alarm_remark = if iot_alarm_status > 0 { Some(iot_alarm_info) } else { None };
+            iot_data.battery = Some(iot_battery.to_string());
+            iot_data.rssi = Some(iot_signal.to_string());
+
+            let iot_payload = serde_json::to_string(&iot_data).unwrap_or_default();
+            let topic = format!("iot/iot/{}/data", iot_device_id);
+
+            if let Err(e) = iot_client.publish(&topic, QoS::AtLeastOnce, false, iot_payload.into_bytes()).await {
+                error!("IotData publish failed: {}", e);
+            } else {
+                info!("IotData publish ok: topic={}", topic);
+            }
+        });
+    }
+}
+
+enum DeviceProtocol {
+    DevFrames,
+    S909,
+    Other(String),
 }
 
 fn hex_from_str(input: &str) -> Result<Vec<u8>, std::num::ParseIntError> {
