@@ -1,7 +1,7 @@
 use crate::modules::system::domain::vo::{RespVO, CODE_FAIL};
 use crate::modules::system::service::CONTEXT;
 use crate::modules::gateway::domain::dto::gateway_invoke::{
-    GatewayInvokeVO, 
+    GatewayInvokeVO,
     SystemInfoParams,
     ChangePasswordParams,
     SetTimeParams,
@@ -15,7 +15,6 @@ use crate::modules::gateway::domain::dto::gateway_invoke::{
     PerformRebootParams,
     AvailableSerialPortsParams,
     OpenSerialPortParams,
-    CloseSerialPortParams,
     SetBaudRateParams,
     AvailableDataBitsParams,
     AvailableParitiesParams,
@@ -48,7 +47,7 @@ pub struct GenericInvokeRequest {
 pub async fn gateway_invoke(req: web::Json<GenericInvokeRequest>) -> impl Responder {
     let vo = req.into_inner();
 
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let source = vo
             .source
             .as_deref()
@@ -79,7 +78,7 @@ pub async fn gateway_invoke(req: web::Json<GenericInvokeRequest>) -> impl Respon
 #[post("/gateway/system/deviceUniqueID")]
 pub async fn system_device_unique_id(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let params = DeviceUniqueIDParams {};
         let result = manager.gateway_invoke(
             &vo.device_hash,
@@ -101,7 +100,7 @@ pub async fn system_device_unique_id(req: web::Json<GatewayInvokeVO>) -> impl Re
 #[post("/gateway/system/deviceUniqueIDHash")]
 pub async fn system_device_unique_id_hash(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let params = DeviceUniqueIDHashParams {};
         let result = manager.gateway_invoke(
             &vo.device_hash,
@@ -123,7 +122,7 @@ pub async fn system_device_unique_id_hash(req: web::Json<GatewayInvokeVO>) -> im
 #[post("/gateway/system/info")]
 pub async fn system_info(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let params = SystemInfoParams {};
         let result = manager.gateway_invoke(
             &vo.device_hash,
@@ -145,7 +144,7 @@ pub async fn system_info(req: web::Json<GatewayInvokeVO>) -> impl Responder {
 #[post("/gateway/system/changePassword")]
 pub async fn system_change_password(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let current_password = vo.params.get("current_password")
             .and_then(|v| v.as_str())
             .unwrap_or("")
@@ -180,7 +179,7 @@ pub async fn system_change_password(req: web::Json<GatewayInvokeVO>) -> impl Res
 #[post("/gateway/system/applicationInfo")]
 pub async fn system_application_info(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let params = ApplicationInfoParams {};
         let result = manager.gateway_invoke(
             &vo.device_hash,
@@ -202,7 +201,7 @@ pub async fn system_application_info(req: web::Json<GatewayInvokeVO>) -> impl Re
 #[post("/gateway/system/iccIDs")]
 pub async fn system_iccid(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let params = ICCIDsParams {};
         let result = manager.gateway_invoke(
             &vo.device_hash,
@@ -224,7 +223,7 @@ pub async fn system_iccid(req: web::Json<GatewayInvokeVO>) -> impl Responder {
 #[post("/gateway/system/setTime")]
 pub async fn system_set_time(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let params = SetTimeParams(chrono::Utc::now().timestamp_millis());
         let result = manager.gateway_invoke(
             &vo.device_hash,
@@ -246,7 +245,7 @@ pub async fn system_set_time(req: web::Json<GatewayInvokeVO>) -> impl Responder 
 #[post("/gateway/system/setTimeZone")]
 pub async fn system_set_timezone(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let timezone = vo.params.get("timezone")
             .and_then(|v| v.as_str())
             .unwrap_or("")
@@ -277,7 +276,7 @@ pub async fn system_set_timezone(req: web::Json<GatewayInvokeVO>) -> impl Respon
 #[post("/gateway/system/availableTimeZoneIDs")]
 pub async fn system_available_timezones(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let params = AvailableTimeZoneIDsParams {};
         let result = manager.gateway_invoke(
             &vo.device_hash,
@@ -299,7 +298,7 @@ pub async fn system_available_timezones(req: web::Json<GatewayInvokeVO>) -> impl
 #[post("/gateway/system/systemTimeZoneID")]
 pub async fn system_current_timezone(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let params = SystemTimeZoneIDParams {};
         let result = manager.gateway_invoke(
             &vo.device_hash,
@@ -321,7 +320,7 @@ pub async fn system_current_timezone(req: web::Json<GatewayInvokeVO>) -> impl Re
 #[post("/gateway/system/performReboot")]
 pub async fn system_reboot(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let params = PerformRebootParams {};
         let result = manager.gateway_invoke(
             &vo.device_hash,
@@ -345,7 +344,7 @@ pub async fn system_reboot(req: web::Json<GatewayInvokeVO>) -> impl Responder {
 #[post("/gateway/serial/availableSerialPorts")]
 pub async fn serial_available_ports(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let params = AvailableSerialPortsParams {};
         let result = manager.gateway_invoke(
             &vo.device_hash,
@@ -367,7 +366,7 @@ pub async fn serial_available_ports(req: web::Json<GatewayInvokeVO>) -> impl Res
 #[post("/gateway/serial/openSerialPort")]
 pub async fn serial_open_port(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let port_name = vo.params.get("port_name")
             .and_then(|v| v.as_str())
             .unwrap_or("")
@@ -398,7 +397,7 @@ pub async fn serial_open_port(req: web::Json<GatewayInvokeVO>) -> impl Responder
 #[post("/gateway/serial/closeSerialPort")]
 pub async fn serial_close_port(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let port_name = vo.params.get("port_name")
             .and_then(|v| v.as_str())
             .unwrap_or("")
@@ -408,7 +407,7 @@ pub async fn serial_close_port(req: web::Json<GatewayInvokeVO>) -> impl Responde
             return RespVO::<()>::from_error_info(CODE_FAIL, "缺少参数 port_name").resp_json();
         }
 
-        let params = CloseSerialPortParams { port_name };
+        let params = port_name;
         let result = manager.gateway_invoke(
             &vo.device_hash,
             &vo.protocol_type,
@@ -429,7 +428,7 @@ pub async fn serial_close_port(req: web::Json<GatewayInvokeVO>) -> impl Responde
 #[post("/gateway/serial/setBaudRate")]
 pub async fn serial_set_baudrate(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let port_name = vo.params.get("port_name")
             .and_then(|v| v.as_str())
             .unwrap_or("")
@@ -463,7 +462,7 @@ pub async fn serial_set_baudrate(req: web::Json<GatewayInvokeVO>) -> impl Respon
 #[post("/gateway/serial/availableDataBits")]
 pub async fn serial_available_databits(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let params = AvailableDataBitsParams {};
         let result = manager.gateway_invoke(
             &vo.device_hash,
@@ -485,7 +484,7 @@ pub async fn serial_available_databits(req: web::Json<GatewayInvokeVO>) -> impl 
 #[post("/gateway/serial/availableParities")]
 pub async fn serial_available_parities(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let params = AvailableParitiesParams {};
         let result = manager.gateway_invoke(
             &vo.device_hash,
@@ -507,7 +506,7 @@ pub async fn serial_available_parities(req: web::Json<GatewayInvokeVO>) -> impl 
 #[post("/gateway/serial/availableStopBits")]
 pub async fn serial_available_stopbits(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let params = AvailableStopBitsParams {};
         let result = manager.gateway_invoke(
             &vo.device_hash,
@@ -529,7 +528,7 @@ pub async fn serial_available_stopbits(req: web::Json<GatewayInvokeVO>) -> impl 
 #[post("/gateway/serial/availableFlowControls")]
 pub async fn serial_available_flowcontrols(req: web::Json<GatewayInvokeVO>) -> impl Responder {
     let vo = req.into_inner();
-    if let Some(ref manager) = CONTEXT.mqtt_manager {
+    if let Some(manager) = CONTEXT.mqtt_manager.get() {
         let params = AvailableFlowControlsParams {};
         let result = manager.gateway_invoke(
             &vo.device_hash,
@@ -546,3 +545,4 @@ pub async fn serial_available_flowcontrols(req: web::Json<GatewayInvokeVO>) -> i
         RespVO::<()>::from_error_info(CODE_FAIL, "MQTT 客户端未初始化").resp_json()
     }
 }
+

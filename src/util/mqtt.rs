@@ -90,6 +90,7 @@ impl MqttManager {
 
     /// 发布逻辑
     pub async fn publish(&self, topic: &str, payload: Vec<u8>, qos: QoS) -> Result<()> {
+        log_publish_payload(topic, &payload);
         self.client.publish(topic, qos, false, payload).await?;
         Ok(())
     }
@@ -161,13 +162,21 @@ impl MqttManager {
         self.client
             .subscribe(&response_topic, QoS::AtMostOnce)
             .await?;
+        log_publish_payload(&request_topic, &payload_bytes);
         self.client
             .publish(&request_topic, QoS::AtLeastOnce, false, payload_bytes)
             .await?;
 
         // 6. 等待回包 (设置 10 秒超时)
         match timeout(Duration::from_millis(request_timeout), rx).await {
-            Ok(Ok(response_body)) => Ok(response_body),
+            Ok(Ok(response_body)) => {
+                info!(
+                    "MQTT response: topic={}, payload={}",
+                    response_topic,
+                    response_body
+                );
+                Ok(response_body)
+            }
             Ok(Err(_)) => Err(anyhow::anyhow!("Internal communication channel closed")),
             Err(_) => {
                 PENDING_REQUESTS.remove(&tid);
@@ -184,6 +193,11 @@ impl MqttManager {
                     // 检查是否有对应的 HTTP 请求在等待
                     if let Some((_, tx)) = PENDING_REQUESTS.remove(&tid) {
                         info!("🎯 匹配到网关响应: tid={}", tid);
+                        info!(
+                            "MQTT response matched: topic={}, payload={}",
+                            publish.topic,
+                            arr[1]
+                        );
                         let _ = tx.send(arr[1].clone());
                         return;
                     }
@@ -502,6 +516,7 @@ impl MqttManager {
 
             let iot_payload = serde_json::to_string(&iot_data).unwrap_or_default();
             let topic = format!("iot/iot/{}/data", iot_device_id);
+            info!("MQTT publish: topic={}, payload={}", topic, iot_payload);
 
             if let Err(e) = iot_client
                 .publish(&topic, QoS::AtLeastOnce, false, iot_payload.into_bytes())
@@ -644,6 +659,7 @@ impl MqttManager {
 
             let iot_payload = serde_json::to_string(&iot_data).unwrap_or_default();
             let topic = format!("iot/iot/{}/data", iot_device_id);
+            info!("MQTT publish: topic={}, payload={}", topic, iot_payload);
 
             if let Err(e) = iot_client
                 .publish(&topic, QoS::AtLeastOnce, false, iot_payload.into_bytes())
@@ -672,4 +688,19 @@ fn hex_from_str(input: &str) -> Result<Vec<u8>, std::num::ParseIntError> {
         .map(|chunk| std::str::from_utf8(chunk).unwrap())
         .map(|chunk| u8::from_str_radix(chunk, 16))
         .collect()
+}
+
+fn log_publish_payload(topic: &str, payload: &[u8]) {
+    match std::str::from_utf8(payload) {
+        Ok(text) => info!("MQTT publish: topic={}, payload={}", topic, text),
+        Err(_) => info!(
+            "MQTT publish: topic={}, payload_hex={}",
+            topic,
+            payload
+                .iter()
+                .map(|b| format!("{:02X}", b))
+                .collect::<Vec<String>>()
+                .join("")
+        ),
+    }
 }

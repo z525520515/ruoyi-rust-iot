@@ -20,6 +20,13 @@ async fn main() -> std::io::Result<()> {
     let mqtt_config = CONTEXT.config.mqtt.clone();
     let mqtt_manager = MqttManager::init(mqtt_config).await;
     let _ = mqtt_manager.subscribe("GIOT-GW/UL/#", QoS::AtLeastOnce).await;
+    let _ = mqtt_manager
+        .subscribe(
+            "ZGV2aWNlLWhhc2gtcGxhY2Vob2xkZXI%3D/test_mqtt/protocol_stack/Control/test_control/system/request",
+            QoS::AtLeastOnce,
+        )
+        .await;
+    let _ = CONTEXT.mqtt_manager.set(mqtt_manager);
     CONTEXT.sys_dict_data_service.update_cache().await?;
     // dbg!("init sys_dict data ok! 22");
     CONTEXT.sys_config_service.loading_config_cache().await?;

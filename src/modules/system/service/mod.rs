@@ -20,7 +20,7 @@ mod sys_user_service;
 pub use crate::config::config::ApplicationConfig;
 pub use cache_service::*;
 pub use mem_service::*;
-use once_cell::sync::Lazy;
+use once_cell::sync::{Lazy, OnceCell};
 use rbdc_pg::driver::PgDriver;
 // use rbatis::rbatis::Rbatis;
 // use rbdc_mysql::driver::MysqlDriver;
@@ -86,7 +86,7 @@ pub struct ServiceContext {
     pub char_array: [char; 52],
     pub equipment_installation_service: EquipmentInstallationService,
     pub equipment_daum_service: EquipmentDaumService ,
-    pub mqtt_manager: Option<MqttManager>,
+    pub mqtt_manager: OnceCell<MqttManager>,
 }
 
 impl ServiceContext {
@@ -170,7 +170,7 @@ impl Default for ServiceContext {
             char_array: char_array2,
             equipment_installation_service: EquipmentInstallationService {},
             equipment_daum_service: EquipmentDaumService {},
-            mqtt_manager: None,
+            mqtt_manager: OnceCell::new(),
         }
     }
 }
