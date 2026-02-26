@@ -17,31 +17,12 @@ impl PasswordEncoder {
      hasher.result_str().to_uppercase()
 
       }
-      pub fn verify(password: &str, raw_password: &str) -> bool {
-        // let mut hasher = Sha3::sha3_256();
+    pub fn verify(password: &str, raw_password: &str) -> bool {
+        let mut hasher = Sha3::sha3_256();
+        hasher.input_str(raw_password);
+        let hash = hasher.result_str().to_uppercase();
 
-        // // write input message
-        // hasher.input_str(raw_password);
-    
-        // // read hash digest
-        // let pas22 = hasher.result_str().to_lowercase();
-        // dbg!(&pas22);
-        // let pas2=&password;
-
-        let mut hasher2 = Sha3::sha3_256();
-
-        // write input message
-        hasher2.input_str(raw_password);
-    
-        // read hash digest
-        let pas33 = hasher2.result_str().to_lowercase();
-        dbg!(&pas33);
-        let pas3=&pas33;
-        dbg!(format!("raw_password {} pas3 {}  ",raw_password ,pas3)  );
-        dbg!(format!("password {}   tosaveUp {} ",raw_password ,pas3)  );
-        dbg!(pas3);
-
-        password == pas3
+        password == raw_password || password.eq_ignore_ascii_case(&hash)
 
       }
 

@@ -65,6 +65,7 @@ url = "2.5.2"
 chrono = "0.4.38"
 user-agent-parser = "0.3.6"
 base64 = "0.22.1"
+argon2 = "0.5"
 bytesize = "1.3.0"
 
 log = "0.4.22"
@@ -85,6 +86,17 @@ axum = "0.7"
 dashmap = "5.5"
 env_logger = "0.10"
 urlencoding = "2.1"
+yaml-rust = "0.4.5"
+md5 = "0.8.0"
+config = "0.15.15"
+flexi_logger = "0.31.2"
+sea-orm = { version = "1.1.15", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros"] }
+sqlx = "0.8.6"
+lazy_static = "1.5.0"
+thiserror = "2.0.17"
+calamine = "0.31.0"
+xlsxwriter = "0.6.1"
+reqwest = { version = "0.12.22", features = ["json"] }
 [profile.release]
 lto = true
 opt-level = 'z'

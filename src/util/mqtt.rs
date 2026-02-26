@@ -276,7 +276,7 @@ impl MqttManager {
                 }
             }
         } else {
-            Some(DeviceProtocol::Other(topic.to_string()))
+            Some(DeviceProtocol::Other(()))
         }
     }
 
@@ -676,7 +676,7 @@ impl MqttManager {
 enum DeviceProtocol {
     DevFrames,
     S909,
-    Other(String),
+    Other(()),
 }
 
 fn hex_from_str(input: &str) -> Result<Vec<u8>, std::num::ParseIntError> {

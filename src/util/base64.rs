@@ -45,7 +45,6 @@ fn cvt(i: u8) -> String {
 
 #[cfg(test)]
 mod test {
-    use crate::util::base64::encode;
     #[test]
     fn test_encode() {
 

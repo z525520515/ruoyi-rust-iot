@@ -38,7 +38,9 @@ pub struct SystemInfoParams {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ChangePasswordParams {
+    #[serde(rename = "currentPassword")]
     pub current_password: String,
+    #[serde(rename = "newPassword")]
     pub new_password: String,
 }
 
@@ -76,46 +78,59 @@ pub struct AvailableSerialPortsParams {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OpenSerialPortParams {
+    #[serde(rename = "portName")]
     pub port_name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CloseSerialPortParams {
+    #[serde(rename = "portName")]
     pub port_name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CloseAllSerialPortsParams {
+    #[serde(rename = "portNames")]
     pub port_names: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SetBaudRateParams {
+    #[serde(rename = "portName")]
     pub port_name: String,
+    #[serde(rename = "baudRate")]
     pub baud_rate: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SetDataBitsParams {
+    #[serde(rename = "portName")]
     pub port_name: String,
+    #[serde(rename = "dataBits")]
     pub data_bits: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SetParityParams {
+    #[serde(rename = "portName")]
     pub port_name: String,
+    #[serde(rename = "parity")]
     pub parity: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SetStopBitsParams {
+    #[serde(rename = "portName")]
     pub port_name: String,
+    #[serde(rename = "stopBits")]
     pub stop_bits: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SetFlowControlParams {
+    #[serde(rename = "portName")]
     pub port_name: String,
+    #[serde(rename = "flowControl")]
     pub flow_control: String,
 }
 
