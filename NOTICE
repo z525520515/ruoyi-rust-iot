@@ -1,0 +1,23 @@
+NOTICE
+
+本项目（Rust + Actix-Web + Vue3 后台管理框架）是在以下开源项目基础上二次开发的，
+相关版权与许可归属如下：
+
+1. RuoYi / RuoYi-Vue3（前端，MIT License）
+   - https://gitee.com/y_project/RuoYi-Vue
+   - https://github.com/yangzongzhuan/RuoYi-Vue3
+   - Copyright (c) 2018-2023 ruoyi.vip
+   - 前端目录 ruoyi-vue3-rust-master/ 为 RuoYi-Vue3 v3.8.6 的二次开发副本，
+     其许可证全文见 ruoyi-vue3-rust-master/LICENSE。
+
+2. rust-ruoyi / ruoyi-rust（后端框架，上游项目）
+   - https://gitee.com/wizount/ruoyi-rust
+   - 后端代码在该项目基础上修改而来，相关文件继续遵循上游项目的许可证与署名要求。
+     如上游项目适用 Apache-2.0 等许可证，则相应衍生部分继续适用其条款。
+
+3. 设备 / 网关协议相关代码与文档（backend/core/dev_protocols、backend/docs 及协议说明文档）
+   可能涉及第三方厂商协议资料，其授权范围与使用限制由使用者自行确认，
+   本项目不对此类资料的合规性作出保证。
+
+4. 其他第三方依赖（Rust crates、npm 包等）遵循各自许可证，
+   完整依赖清单见 backend/Cargo.lock、codegen/Cargo.lock、ruoyi-vue3-rust-master/package-lock.json。

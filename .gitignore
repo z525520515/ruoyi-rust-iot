@@ -1,0 +1,30 @@
+# Rust 构建产物
+target/
+**/target/
+*.pdb
+*.rs.bk
+
+# Node / 前端构建产物
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+*.local
+
+# 本地环境与本地配置（不要提交真实凭据）
+.env.local
+.env.*.local
+application-local.yml
+application-local.yaml
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+
+# 日志与系统文件
+*.log
+logs/
+.DS_Store
+Thumbs.db
