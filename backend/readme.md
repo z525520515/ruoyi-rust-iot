@@ -1,2 +1,0 @@
-ZGV2aWNlLWhhc2gtcGxhY2Vob2xkZXI%3D/test_mqtt/protocol_stack/Control/test_control/serial_port_manager/request
-ZGV2aWNlLWhhc2gtcGxhY2Vob2xkZXI%3D/test_mqtt/protocol_stack/Control/test_control/+/response
