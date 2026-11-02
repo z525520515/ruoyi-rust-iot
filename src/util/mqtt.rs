@@ -515,7 +515,7 @@ impl MqttManager {
             iot_data.rssi = Some(iot_signal.to_string());
 
             let iot_payload = serde_json::to_string(&iot_data).unwrap_or_default();
-            let topic = format!("iot/iot/{}/data", iot_device_id);
+            let topic = format!("iot/devices/{}/data", iot_device_id);
             info!("MQTT publish: topic={}, payload={}", topic, iot_payload);
 
             if let Err(e) = iot_client
@@ -658,7 +658,7 @@ impl MqttManager {
             iot_data.rssi = Some(iot_signal.to_string());
 
             let iot_payload = serde_json::to_string(&iot_data).unwrap_or_default();
-            let topic = format!("iot/iot/{}/data", iot_device_id);
+            let topic = format!("iot/devices/{}/data", iot_device_id);
             info!("MQTT publish: topic={}, payload={}", topic, iot_payload);
 
             if let Err(e) = iot_client

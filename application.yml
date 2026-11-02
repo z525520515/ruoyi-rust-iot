@@ -10,6 +10,8 @@ base_api: "/dev-api"
 #缓存介质类型,单选("mem","redis")
 cache_type: "redis"
 
+#说明：以下敏感配置（redis/数据库/jwt/mqtt）均可用环境变量覆盖，源码中不保存真实凭据
+#APP_REDIS_URL / APP_DATABASE_URL / APP_JWT_SECRET / APP_MQTT_HOST / APP_MQTT_PORT / APP_MQTT_CLIENT_ID / APP_MQTT_USERNAME / APP_MQTT_PASSWORD
 #web后台 redis地址(cache_type为“redis”时有效)
 web_redis_url: "redis://:CHANGE_ME@127.0.0.1:6379"
 

@@ -86,8 +86,36 @@ impl Default for ApplicationConfig {
         // 4. 解析为结构体
         // 注意：由于 MqttConfig 字段在 ApplicationConfig 中是非 Option 的，
         // 确保你的 yml 文件中一定包含 mqtt: 节点及相关子项。
-        let result: ApplicationConfig =
+        let mut result: ApplicationConfig =
             serde_yaml::from_str(&*hash.to_string()).expect("load config file fail: Make sure 'mqtt' section exists in yml");
+
+        // 支持通过环境变量覆盖敏感配置，避免在源码中硬编码真实凭据
+        if let Ok(v) = std::env::var("APP_DATABASE_URL") {
+            result.database_url = v;
+        }
+        if let Ok(v) = std::env::var("APP_REDIS_URL") {
+            result.web_redis_url = v;
+        }
+        if let Ok(v) = std::env::var("APP_JWT_SECRET") {
+            result.jwt_secret = v;
+        }
+        if let Ok(v) = std::env::var("APP_MQTT_HOST") {
+            result.mqtt.host = v;
+        }
+        if let Ok(v) = std::env::var("APP_MQTT_PORT") {
+            if let Ok(port) = v.parse::<u16>() {
+                result.mqtt.port = port;
+            }
+        }
+        if let Ok(v) = std::env::var("APP_MQTT_CLIENT_ID") {
+            result.mqtt.client_id = v;
+        }
+        if let Ok(v) = std::env::var("APP_MQTT_USERNAME") {
+            result.mqtt.username = v;
+        }
+        if let Ok(v) = std::env::var("APP_MQTT_PASSWORD") {
+            result.mqtt.password = v;
+        }
 
         if result.debug {
             println!("[ruoyi_rust] ///////////////////// Start On Debug Mode ////////////////////////////");

@@ -1,15 +1,2 @@
-
-vscode windows 运行
-首先在 PowerShell 下设置环境变量
-$env:RUST_BACKTRACE=1 ;
-$env:profile= "dev" ;
-
-cargo run --bin ruoyi_rust_dev
-
-$env:RUST_BACKTRACE=1 ;
-$env:profile= "prod" ;
-
-cargo run --bin ruoyi_rust_prod
-
-
-
+ZGV2aWNlLWhhc2gtcGxhY2Vob2xkZXI%3D/test_mqtt/protocol_stack/Control/test_control/serial_port_manager/request
+ZGV2aWNlLWhhc2gtcGxhY2Vob2xkZXI%3D/test_mqtt/protocol_stack/Control/test_control/+/response

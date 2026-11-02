@@ -10,6 +10,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Value, json};
 use std::fmt;
 use std::fs;
+#[cfg(feature = "plc_gateway_xlsx")]
 use xlsxwriter::{Format, Workbook, Worksheet};
 
 #[derive(Deserialize, Debug, Clone, Default)]
@@ -301,6 +302,7 @@ pub struct NodePoints {
     pub extra: Option<String>, //自定义字段(选填)
 }
 // ---------- 2. Excel 生成 ----------
+#[cfg(feature = "plc_gateway_xlsx")]
 fn node_points_to_xlsx(nodes: Vec<NodePoints>) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     // 1. 创建临时路径
     let tmp_path = std::env::temp_dir().join(format!("plc_points_{}.xlsx", uuid::Uuid::new_v4()));
@@ -370,6 +372,12 @@ fn node_points_to_xlsx(nodes: Vec<NodePoints>) -> Result<Vec<u8>, Box<dyn std::e
     Ok(bytes)
 }
 
+#[cfg(not(feature = "plc_gateway_xlsx"))]
+fn node_points_to_xlsx(_nodes: Vec<NodePoints>) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    Err("xlsx export disabled (enable feature: plc_gateway_xlsx)".into())
+}
+
+#[cfg(feature = "plc_gateway_xlsx")]
 fn write_opt_u16(
     ws: &mut Worksheet,
     row: u32,
@@ -381,6 +389,8 @@ fn write_opt_u16(
     }
     Ok(())
 }
+
+#[cfg(feature = "plc_gateway_xlsx")]
 fn write_opt_str(
     ws: &mut Worksheet,
     row: u32,
@@ -491,11 +501,12 @@ fn starts_with_expected(actual: &str, expected: &str) -> bool {
     actual.starts_with(expected)
 }
 // ---------- 解析 Excel ----------
+#[cfg(feature = "plc_gateway_xlsx")]
 fn parse_xlsx_to_node_points(
     bytes: &[u8],
     protocol: &str,
 ) -> Result<Vec<NodePoints>, Box<dyn std::error::Error>> {
-    use calamine::{Reader, Xlsx, open_workbook_from_rs};
+    use calamine::{open_workbook_from_rs, Reader, Xlsx};
 
     let cursor = std::io::Cursor::new(bytes);
     let mut workbook: Xlsx<_> = open_workbook_from_rs(cursor)?;
@@ -639,6 +650,14 @@ fn parse_xlsx_to_node_points(
     }
 
     Ok(nodes)
+}
+
+#[cfg(not(feature = "plc_gateway_xlsx"))]
+fn parse_xlsx_to_node_points(
+    _bytes: &[u8],
+    _protocol: &str,
+) -> Result<Vec<NodePoints>, Box<dyn std::error::Error>> {
+    Err("xlsx import disabled (enable feature: plc_gateway_xlsx)".into())
 }
 
 // 工具函数
