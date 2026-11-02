@@ -2,6 +2,9 @@
 name = "codegen"
 version = "0.1.0"
 edition = "2021"
+description = "ruoyi-rust-iot 代码生成器（根据数据库表生成后端与前端代码）"
+license = "MIT"
+repository = "https://github.com/z525520515/ruoyi-rust-iot"
 
 [[bin]]
 name = "codegen"

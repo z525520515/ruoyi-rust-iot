@@ -1,6 +1,10 @@
-# rust-ruoyi
+# ruoyi-rust-iot
 
 **Rust + Actix-Web + Vue3 全栈后台管理框架**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+> 仓库地址：https://github.com/z525520515/ruoyi-rust-iot
 
 一个基于 Rust 后端（Actix-Web / Rbatis / PostgreSQL / Redis / MQTT）与 Vue3 前端（RuoYi-Vue3）
 二次开发的全栈后台管理框架，包含用户与权限体系、系统监控、代码生成，以及设备接入、MQTT

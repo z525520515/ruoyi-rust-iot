@@ -3,6 +3,8 @@ name = "netcore"
 version = "0.1.0"
 edition = "2021"
 description = "High-performance async TCP framework inspired by Netty"
+license = "MIT"
+repository = "https://github.com/z525520515/ruoyi-rust-iot"
 
 [dependencies]
 tokio = { version = "1.0", features = ["full"] }

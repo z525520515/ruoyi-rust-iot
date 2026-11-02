@@ -2,6 +2,9 @@
 name = "DEVICE_PROTO"
 version = "1.0.0"
 edition = "2024"
+description = "Device frame protocol codec library (device data parsing)"
+license = "MIT"
+repository = "https://github.com/z525520515/ruoyi-rust-iot"
 
 [dependencies]
 byteorder = "1.5"

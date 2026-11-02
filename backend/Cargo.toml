@@ -2,6 +2,11 @@
 name = "backend"
 version = "0.1.0"
 edition = "2021"
+description = "Rust + Actix-Web + Vue3 全栈后台管理框架（后端服务）"
+license = "MIT"
+repository = "https://github.com/z525520515/ruoyi-rust-iot"
+keywords = ["actix-web", "admin", "iot", "mqtt", "postgresql"]
+categories = ["web-programming::http-server"]
 
 [[bin]]
 name = "ruoyi_rust_prod"
