@@ -9,6 +9,14 @@ export function listDept(query) {
   })
 }
 
+// 查询部门下拉树结构（登录即可访问，供设备等业务页面使用）
+export function deptTreeSelect() {
+  return request({
+    url: '/system/dept/treeselect',
+    method: 'get'
+  })
+}
+
 // 查询部门列表（排除节点）
 export function listDeptExcludeChild(deptId) {
   return request({

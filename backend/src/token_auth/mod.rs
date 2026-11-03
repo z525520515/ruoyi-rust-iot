@@ -90,8 +90,8 @@ pub async fn check_permit(req: HttpRequest, permit_str: &str) -> Option<RespVO<u
         Ok(data) => {
             match check_auth(&data, permit_str).await {
                 Ok(_) => {
-                    //刷新过期时间
-                    crate::web_data::set_user_name(data.user_name);
+                    //刷新过期时间，并保存当前用户上下文（数据权限使用）
+                    crate::web_data::set_user_cache(data);
                 }
                 Err(e) => {
                     //仅提示拦截

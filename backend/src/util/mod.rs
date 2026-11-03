@@ -10,3 +10,4 @@ pub mod idseq;
 pub mod mqtt;
 pub mod iot_data;
 pub mod topic_builder;
+pub mod data_scope;

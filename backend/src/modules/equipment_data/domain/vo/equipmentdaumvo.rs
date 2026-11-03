@@ -14,6 +14,7 @@ pub struct EquipmentDaumVo {
     pub alarm_status: Option<i32>, // 报警状态标识 (0:正常, 1:报警或异常)
     pub payload: Option<serde_json::Value>,
     pub dept_id: Option<i32>,
+    pub dept_name: Option<String>, // 部门名称（关联 sys_dept 回填）
     pub remark: Option<String>,
     pub create_time: Option<DateTime>,
 }
@@ -31,6 +32,7 @@ impl From<EquipmentData> for EquipmentDaumVo {
             alarm_status: arg.alarm_status,
             payload: arg.payload,
             dept_id: arg.dept_id,
+            dept_name: None,
             remark: arg.remark,
             create_time: arg.create_time,
         }

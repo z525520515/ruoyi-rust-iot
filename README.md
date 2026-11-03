@@ -20,6 +20,7 @@
 - **系统监控**：在线用户、定时任务、服务与缓存监控、登录日志
 - **代码生成**：根据数据库表生成后端与前端代码（`codegen/`）
 - **文件上传、WebSocket** 通讯示例
+- **设备管理**：设备台账（含归属部门与部门数据权限）、设备数据（MQTT 上报数据、在线统计）
 - **物联网扩展示例**（可选 feature `plc_gateway`）：设备管理、MQTT 数据解析、TCP/PLC 网关、
   远程运维（OTA、日志、重启、网络配置）
 - **前端**：RuoYi-Vue3 后台界面（Vue3 + Vite + Element Plus）
@@ -42,9 +43,11 @@ backend/                    Rust 后端（Actix-Web）
   application.yml           基础配置（敏感项使用环境变量覆盖）
   application-{dev,prod}.yml
   postgresql.sql            PostgreSQL 初始化脚本
+  sql/                      设备模块表结构与菜单/字典脚本
   core/dev_protocols/       设备协议解析（可选）
   src/modules/plc_gateway/  PLC / MQTT 网关与远程运维（feature: plc_gateway）
 codegen/                    代码生成器
+docs/                       设计与接口文档
 ruoyi-vue3-rust-master/     前端（RuoYi-Vue3 v3.8.6 二次开发副本）
 ```
 
@@ -62,7 +65,12 @@ ruoyi-vue3-rust-master/     前端（RuoYi-Vue3 v3.8.6 二次开发副本）
 ```bash
 createdb iot_core   # 或使用现有库名，并同步修改 APP_DATABASE_URL
 psql -U postgres -d iot_core -f backend/postgresql.sql
+# 设备台账 / 设备数据相关表、菜单、字典（可重复执行）
+psql -U postgres -d iot_core -f backend/sql/device_schema.sql
+psql -U postgres -d iot_core -f backend/sql/device_menu.sql
 ```
+
+设备模块的接口与页面设计见 [docs/device-frontend-api.md](docs/device-frontend-api.md)。
 
 ### 3. 启动后端
 

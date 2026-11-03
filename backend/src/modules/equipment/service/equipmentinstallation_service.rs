@@ -24,16 +24,91 @@ impl EquipmentInstallationService {
         &self,
         arg: &EquipmentInstallationPageDTO,
     ) -> Result<Page<EquipmentInstallationVo>> {
-        let page_req = &PageRequest::from(arg);
-        // 由于 使用的 postgresql 所以 limit 语句要从新按postgresql的语法注入参数
-        let limitstr = format!(
-            " limit {} offset {}",
-            page_req.page_size,
-            (page_req.page_no - 1) * page_req.page_size
+        let page_req = PageRequest::from(arg);
+        let mut where_sql = String::from(" where 1=1");
+        let mut args: Vec<rbs::Value> = Vec::new();
+
+        // 普通查询条件
+        crate::util::data_scope::push_like(
+            &mut where_sql,
+            &mut args,
+            "equipment_number",
+            &arg.equipment_number,
         );
-        let linits = &limitstr;
-        let data = EquipmentInstallation::select_page(pool!(), page_req, linits, arg).await?;
-        let page = Page::<EquipmentInstallationVo>::from(data);
+        crate::util::data_scope::push_like(
+            &mut where_sql,
+            &mut args,
+            "equipment_name",
+            &arg.equipment_name,
+        );
+        crate::util::data_scope::push_eq_str(
+            &mut where_sql,
+            &mut args,
+            "equipment_type",
+            &arg.equipment_type,
+        );
+        crate::util::data_scope::push_eq_str(
+            &mut where_sql,
+            &mut args,
+            "equipment_status",
+            &arg.equipment_status,
+        );
+        crate::util::data_scope::push_eq_str(
+            &mut where_sql,
+            &mut args,
+            "communication_means",
+            &arg.communication_means,
+        );
+        crate::util::data_scope::push_like(
+            &mut where_sql,
+            &mut args,
+            "project_num",
+            &arg.project_num,
+        );
+
+        // 部门筛选（含下级部门）
+        if let Some(dept_id) = arg.dept_id {
+            let ids = crate::util::data_scope::dept_and_children(dept_id).await?;
+            crate::util::data_scope::push_in_clause(&mut where_sql, &mut args, "dept_id", &ids);
+        }
+
+        // 数据权限（admin/全部数据不限制；部门权限按部门过滤；仅本人按 create_by 过滤）
+        crate::util::data_scope::apply_scope(
+            &mut where_sql,
+            &mut args,
+            "dept_id",
+            "create_by",
+        )
+        .await?;
+
+        let count_sql = format!("select count(1) from equipment_installation{}", where_sql);
+        let total: u64 = pool!().query_decode(&count_sql, args.clone()).await?;
+
+        let data_sql = format!(
+            "select * from equipment_installation{} order by create_time desc limit ? offset ?",
+            where_sql
+        );
+        let mut data_args = args;
+        data_args.push(value!(page_req.page_size as i64));
+        data_args.push(value!(
+            ((page_req.page_no.saturating_sub(1)) * page_req.page_size) as i64
+        ));
+        let rows: Vec<EquipmentInstallation> = pool!().query_decode(&data_sql, data_args).await?;
+
+        let dept_map = crate::util::data_scope::dept_name_map().await?;
+        let records: Vec<EquipmentInstallationVo> = rows
+            .into_iter()
+            .map(|row| {
+                let mut vo = EquipmentInstallationVo::from(row);
+                if let Some(dept_id) = vo.dept_id {
+                    vo.dept_name = dept_map.get(&dept_id.to_string()).cloned();
+                }
+                vo
+            })
+            .collect();
+
+        let mut page = Page::new_total(page_req.page_no, page_req.page_size, total);
+        page.records = records;
         Ok(page)
     }
     // 调用表实体对象 EquipmentInstallation 的select_all方法 ,返回 Page<EquipmentInstallationVo>
@@ -61,7 +136,17 @@ impl EquipmentInstallationService {
             .next()
             .ok_or_else(|| Error::from(format!("不存在 {:?} ！", id)))?;
 
-        let row_vo = EquipmentInstallationVo::from(row);
+        let mut row_vo = EquipmentInstallationVo::from(row);
+        // 数据权限：校验当前用户是否可以访问该设备
+        crate::util::data_scope::check_row_scope(
+            row_vo.dept_id,
+            row_vo.create_by.as_deref(),
+        )
+        .await?;
+        if let Some(dept_id) = row_vo.dept_id {
+            let dept_map = crate::util::data_scope::dept_name_map().await?;
+            row_vo.dept_name = dept_map.get(&dept_id.to_string()).cloned();
+        }
         Ok(row_vo)
     }
     //  add 方法 , EquipmentInstallation::insert
@@ -81,11 +166,18 @@ impl EquipmentInstallationService {
 
     pub async fn update(&self, data: EquipmentInstallation) -> Result<u64> {
         // 假设你的主键字段名是 id
-        // let result = EquipmentInstallation::update_by_column(pool!(), &data, "id").await?;
+        let id = data.id.unwrap_or_default();
+        // 数据权限：校验当前用户是否可以修改该设备
+        let old = EquipmentInstallation::select_by_map(pool!(), value! {"id": id})
+            .await?
+            .into_iter()
+            .next()
+            .ok_or_else(|| Error::from(format!("不存在 {:?} ！", id)))?;
+        crate::util::data_scope::check_row_scope(old.dept_id, old.create_by.as_deref()).await?;
         let result = EquipmentInstallation::update_by_map(
             pool!(),
             &data,
-            value! {"id": data.id.unwrap_or_default()},
+            value! {"id": id},
         )
         .await?;
         return Ok(result.rows_affected);
@@ -95,6 +187,10 @@ impl EquipmentInstallationService {
         let id_num: i64 = id.parse()
             .map_err(|_| Error::from(format!("id 必须是纯数字: {}", id)))?;
         let targets = EquipmentInstallation::select_by_map(pool!(), value! {"id":  id_num }).await?;
+        // 数据权限：校验当前用户是否可以删除该设备
+        for row in &targets {
+            crate::util::data_scope::check_row_scope(row.dept_id, row.create_by.as_deref()).await?;
+        }
         let r = EquipmentInstallation::delete_by_map(pool!(), value! {"id":  id_num }).await?;
         if r.rows_affected > 0 {
             //copy data to trash
@@ -197,24 +293,59 @@ impl EquipmentInstallationService {
         Ok(imported_count)
     }
     pub async fn get_status_by_sql(&self, arg: &EquipmentDaumPageDTO) -> Result<Page<EquipmentDaumVo>> {
-        let rb = pool!();
         let page_req = PageRequest::from(arg);
-        let mut count_sql = "SELECT count(1) FROM view_device_status WHERE 1=1".to_string();let mut data_sql = "SELECT * FROM view_device_status WHERE 1=1".to_string();
-        let mut wheres = String::new();
-        if let Some(num) = &arg.equipment_number {
-            if !num.is_empty() {
-                wheres.push_str(&format!(" AND equipment_number LIKE '%{}%'", num));
-            }
-        }
-        count_sql.push_str(&wheres);
-        data_sql.push_str(&wheres);
-        data_sql.push_str(" ORDER BY update_time DESC");
-        data_sql.push_str(&format!(" LIMIT {} OFFSET {}", page_req.page_size, (page_req.page_no - 1) * page_req.page_size));
-        let total: u64 = rb.query_decode(&count_sql, vec![]).await?;
-        let rows: Vec<EquipmentData> = rb.query_decode(&data_sql, vec![]).await?;
-        let mut page = Page::new_total(page_req.page_no, page_req.page_size, total);
-        page.records = rows.into_iter().map(EquipmentDaumVo::from).collect();
+        let mut where_sql = String::from(" where 1=1");
+        let mut args: Vec<rbs::Value> = Vec::new();
 
+        crate::util::data_scope::push_like(
+            &mut where_sql,
+            &mut args,
+            "equipment_number",
+            &arg.equipment_number,
+        );
+        crate::util::data_scope::push_eq_str(
+            &mut where_sql,
+            &mut args,
+            "device_category",
+            &arg.device_category,
+        );
+        crate::util::data_scope::push_eq_i32(
+            &mut where_sql,
+            &mut args,
+            "alarm_status",
+            &arg.alarm_status,
+        );
+        crate::util::data_scope::apply_scope_dept_only(&mut where_sql, &mut args, "dept_id").await?;
+
+        let count_sql = format!("select count(1) from view_device_status{}", where_sql);
+        let total: u64 = pool!().query_decode(&count_sql, args.clone()).await?;
+
+        let data_sql = format!(
+            "select id, equipment_number, equipment_name, device_category, upload_time, battery_level, \
+             signal_strength, alarm_status, payload, dept_id, remark, create_time \
+             from view_device_status{} order by upload_time desc limit ? offset ?",
+            where_sql
+        );
+        let mut data_args = args;
+        data_args.push(value!(page_req.page_size as i64));
+        data_args.push(value!(
+            ((page_req.page_no.saturating_sub(1)) * page_req.page_size) as i64
+        ));
+        let rows: Vec<EquipmentData> = pool!().query_decode(&data_sql, data_args).await?;
+        let dept_map = crate::util::data_scope::dept_name_map().await?;
+        let records: Vec<EquipmentDaumVo> = rows
+            .into_iter()
+            .map(|row| {
+                let mut vo = EquipmentDaumVo::from(row);
+                if let Some(dept_id) = vo.dept_id {
+                    vo.dept_name = dept_map.get(&dept_id.to_string()).cloned();
+                }
+                vo
+            })
+            .collect();
+
+        let mut page = Page::new_total(page_req.page_no, page_req.page_size, total);
+        page.records = records;
         Ok(page)
     }
 }

@@ -10,6 +10,7 @@ pub struct EquipmentInstallationVo {
     pub update_by: Option<String>, // 
     pub update_time: Option<DateTime>, // 
     pub dept_id: Option<i64>, // 部门ID
+    pub dept_name: Option<String>, // 部门名称（关联 sys_dept 回填）
     pub remark: Option<String>, // 
     pub expand: Option<String>, // 扩展(json)
     pub spare1: Option<String>, // 
@@ -36,6 +37,7 @@ impl From<EquipmentInstallation> for EquipmentInstallationVo {
             update_by: arg.update_by,
             update_time: arg.update_time,
             dept_id: arg.dept_id,
+            dept_name: None,
             remark: arg.remark,
             expand: arg.expand,
             spare1: arg.spare1,

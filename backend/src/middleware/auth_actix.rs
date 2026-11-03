@@ -70,8 +70,8 @@ impl<S> Service<ServiceRequest> for AuthMiddleware<S>
                         Ok(data) => {
                             match check_auth(&data, &path).await {
                                 Ok(_) => {
-                                    //刷新过期时间
-                                    crate::web_data::set_user_name(data.user_name);
+                                    //刷新过期时间，并保存当前用户上下文（数据权限使用）
+                                    crate::web_data::set_user_cache(data);
                                 }
                                 Err(e) => {
                                     //仅提示拦截

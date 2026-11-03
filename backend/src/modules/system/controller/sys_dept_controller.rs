@@ -14,6 +14,14 @@ pub async fn page(query: web::Query<DeptQueryDTO>) -> impl Responder {
     RespVO::from_result(&data).resp_json()
 }
 
+/// 部门下拉树（登录即可访问，供设备台账/设备数据等业务页面选择、筛选归属部门）
+#[get("/dept/treeselect")]
+#[has_permit("")]
+pub async fn treeselect() -> impl Responder {
+    let dept_tree = CONTEXT.sys_dept_service.get_dept_tree("").await;
+    RespVO::from_result(&dept_tree).resp_json()
+}
+
 
 #[get("/dept/{dept_id}")]
 #[has_permit("system:dept:query")]

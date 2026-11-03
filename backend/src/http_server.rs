@@ -121,6 +121,7 @@ pub fn build_server(base_api: &'static str) -> Server {
                     .service(sys_config_controller::remove)
 
                     .service(sys_dept_controller::page)
+                    .service(sys_dept_controller::treeselect)
                     .service(sys_dept_controller::detail)
                     .service(sys_dept_controller::add)
                     .service(sys_dept_controller::update)

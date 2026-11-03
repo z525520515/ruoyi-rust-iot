@@ -22,7 +22,7 @@ pub async fn page(query: web::Query<EquipmentInstallationPageDTO>) -> impl Respo
 }
 // Excel模板导出
 #[get("/export")]
-#[has_permit("equipment:installation:query")]
+#[has_permit("equipment:installation:export")]
 pub async fn template_export() -> impl Responder {
     let data = CONTEXT
         .equipment_installation_service
@@ -42,7 +42,7 @@ pub async fn template_export() -> impl Responder {
 }
 // Excel导入
 #[post("/import")]
-#[has_permit("equipment:installation:add")]
+#[has_permit("equipment:installation:import")]
 pub async fn import_excel(mut payload: Multipart) -> impl Responder {
     let _import_list: Vec<()> = Vec::new();
     
@@ -138,7 +138,7 @@ pub async fn remove(id: web::Path<i64>) -> impl Responder {
     RespVO::<u64>::judge(data, "".to_string(), "删除失败！".to_string()).resp_json()
 }
 #[get("/status/list")]
-// #[has_permit("equipment:installation:query")]
+#[has_permit("equipment:installation:query")]
 pub async fn status_list(query: web::Query<EquipmentDaumPageDTO>) -> impl Responder {
     let data = CONTEXT.equipment_installation_service.get_status_by_sql(&query).await;
     PageVO::from_result(&data).resp_json()
