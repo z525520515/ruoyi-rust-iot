@@ -31,9 +31,15 @@ jobs:
           cache: npm
           cache-dependency-path: ruoyi-vue3-rust-master/package-lock.json
 
+      - name: Show tool versions
+        working-directory: ruoyi-vue3-rust-master
+        run: |
+          node -v
+          npm -v
+
       - name: Install dependencies
         working-directory: ruoyi-vue3-rust-master
-        run: npm ci
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
 
       - name: Build demo
         working-directory: ruoyi-vue3-rust-master
@@ -47,6 +53,12 @@ jobs:
         run: |
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
+
+      # 首次运行时可自动启用 GitHub Pages（需要在仓库 Settings 中允许 Actions 部署）
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
