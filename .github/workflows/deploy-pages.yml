@@ -54,12 +54,8 @@ jobs:
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
 
-      # 首次运行时可自动启用 GitHub Pages（需要在仓库 Settings 中允许 Actions 部署）
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
+      # 注意：首次使用前需要在仓库 Settings -> Pages -> Source 选择 "GitHub Actions"
+      # GITHUB_TOKEN 没有创建 Pages 站点的权限，无法在 Actions 中自动开启。
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

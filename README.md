@@ -113,7 +113,7 @@ npm run dev
 
 仓库内置了**纯前端 Mock 演示模式**，不需要部署 Rust 后端和数据库，可直接通过 GitHub Pages 访问：
 
-> 演示地址：`https://<你的GitHub用户名>.github.io/ruoyi-rust-iot/`
+> 演示地址：`https://z525520515.github.io/ruoyi-rust-iot/`
 >
 > 演示账号：`admin / admin123`（前端 Mock 校验，不请求后端）
 
