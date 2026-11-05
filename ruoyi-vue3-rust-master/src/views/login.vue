@@ -1,7 +1,8 @@
 <template>
   <div class="login">
     <el-form ref="loginRef" :model="loginForm" :rules="loginRules" class="login-form">
-      <h3 class="title">若依后台管理系统</h3>
+      <h3 class="title">{{ appTitle }}</h3>
+      <div v-if="isDemo" class="demo-tip">演示账号：admin / admin123（前端 Mock 校验）</div>
       <el-form-item prop="username">
         <el-input
           v-model="loginForm.username"
@@ -73,6 +74,10 @@ import useUserStore from '@/store/modules/user'
 const userStore = useUserStore()
 const router = useRouter();
 const { proxy } = getCurrentInstance();
+
+// GitHub Pages 纯前端演示模式
+const isDemo = import.meta.env.VITE_APP_DEMO === 'true';
+const appTitle = import.meta.env.VITE_APP_TITLE || '物联网平台';
 
 const loginForm = ref({
   username: "admin",
@@ -163,6 +168,13 @@ getCookie();
   margin: 0px auto 30px auto;
   text-align: center;
   color: #707070;
+}
+
+.demo-tip {
+  margin: -18px 0 20px;
+  text-align: center;
+  font-size: 13px;
+  color: #409eff;
 }
 
 .login-form {

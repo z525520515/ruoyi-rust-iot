@@ -13,8 +13,20 @@ NProgress.configure({showSpinner: false});
 
 const whiteList = ['/login', '/register'];
 
+// 纯前端演示模式（GitHub Pages）：没有后端，访问需要登录的页面时自动使用演示账号登录
+const demoMode = import.meta.env.VITE_APP_DEMO === 'true';
+
 router.beforeEach((to, from, next) => {
     NProgress.start()
+    if (demoMode && !getToken() && whiteList.indexOf(to.path) === -1) {
+        useUserStore().login({ username: 'admin', password: 'admin123', code: '', uuid: '' }).then(() => {
+            next(to.fullPath)
+        }).catch(() => {
+            next(`/login?redirect=${to.fullPath}`)
+            NProgress.done()
+        })
+        return
+    }
     if (getToken()) {
         const q = {}
         Object.assign(q, to.query)

@@ -6,8 +6,10 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
+    "dev:demo": "vite --mode demo",
     "build:prod": "vite build",
     "build:stage": "vite build --mode staging",
+    "build:demo": "vite build --mode demo",
     "preview": "vite preview"
   },
   "repository": {

@@ -1,5 +1,12 @@
 <template>
    <div class="app-container">
+      <el-alert
+         v-if="isDemo"
+         type="info"
+         :closable="false"
+         title="当前为前端 Mock 演示模式：数据来自浏览器内存，刷新后重置，不连接后端。"
+         class="mb8"
+      />
       <el-row :gutter="20" class="stat-row">
          <el-col :span="8">
             <el-card shadow="hover" class="stat-card">
@@ -296,6 +303,7 @@ import { listData, getData, addData, updateData, delData, getDataStats } from "@
 import { deptTreeSelect } from "@/api/system/dept";
 
 const { proxy } = getCurrentInstance();
+const isDemo = import.meta.env.VITE_APP_DEMO === "true";
 const { device_category, alarm_status } = proxy.useDict("device_category", "alarm_status");
 
 const dataList = ref([]);

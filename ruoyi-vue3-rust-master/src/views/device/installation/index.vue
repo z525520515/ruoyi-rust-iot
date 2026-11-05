@@ -1,5 +1,12 @@
 <template>
    <div class="app-container">
+      <el-alert
+         v-if="isDemo"
+         type="info"
+         :closable="false"
+         title="当前为前端 Mock 演示模式：数据来自浏览器内存，刷新后重置，不连接后端。"
+         class="mb8"
+      />
       <el-row :gutter="20">
          <!--部门数据-->
          <el-col :span="4" :xs="24">
@@ -113,7 +120,7 @@
                      v-hasPermi="['equipment:installation:remove']"
                   >删除</el-button>
                </el-col>
-               <el-col :span="1.5">
+               <el-col :span="1.5" v-if="!isDemo">
                   <el-button
                      type="info"
                      plain
@@ -122,7 +129,7 @@
                      v-hasPermi="['equipment:installation:import']"
                   >导入</el-button>
                </el-col>
-               <el-col :span="1.5">
+               <el-col :span="1.5" v-if="!isDemo">
                   <el-button
                      type="warning"
                      plain
@@ -348,6 +355,7 @@ import { getToken } from "@/utils/auth";
 import { saveAs } from "file-saver";
 
 const { proxy } = getCurrentInstance();
+const isDemo = import.meta.env.VITE_APP_DEMO === "true";
 const { equipment_type, equipment_status, communication_means } = proxy.useDict("equipment_type", "equipment_status", "communication_means");
 
 const installationList = ref([]);

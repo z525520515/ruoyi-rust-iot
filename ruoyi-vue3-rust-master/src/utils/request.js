@@ -6,6 +6,7 @@ import { tansParams, blobValidate } from '@/utils/ruoyi'
 import cache from '@/plugins/cache'
 import { saveAs } from 'file-saver'
 import useUserStore from '@/store/modules/user'
+import { isDemoMode, setupMockAdapter } from '@/mock'
 
 let downloadLoadingInstance;
 // 是否显示重新登录
@@ -19,6 +20,11 @@ const service = axios.create({
   // 超时
   timeout: 10000
 })
+
+// GitHub Pages 纯前端演示模式：使用浏览器内存 Mock 数据，不再请求真实后端
+if (isDemoMode) {
+  service.defaults.adapter = setupMockAdapter()
+}
 
 // request拦截器
 service.interceptors.request.use(config => {

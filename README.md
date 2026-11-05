@@ -109,6 +109,32 @@ npm run dev
 
 > 首次部署后请立即修改默认密码，并替换 `APP_JWT_SECRET`。
 
+## 前端 Mock 演示站（物联网平台 · GitHub Pages）
+
+仓库内置了**纯前端 Mock 演示模式**，不需要部署 Rust 后端和数据库，可直接通过 GitHub Pages 访问：
+
+> 演示地址：`https://<你的GitHub用户名>.github.io/ruoyi-rust-iot/`
+>
+> 演示账号：`admin / admin123`（前端 Mock 校验，不请求后端）
+
+说明：
+
+- 直接访问首页会自动以演示账号登录，无需手动登录；
+- 设备台账、设备数据使用浏览器内存中的 Mock 数据，新增/修改/删除仅在当前页面内存生效，刷新后重置；
+- 演示模式会隐藏 Excel 导入/下载模板按钮；
+- 演示模式下点击“退出登录”会自动重新以演示账号登录（演示站保持可访问的预期行为）；
+- 本地体验：`cd ruoyi-vue3-rust-master && npm install && npm run dev:demo`
+- 本地构建：`npm run build:demo`（产物在 `ruoyi-vue3-rust-master/dist/`）
+- 自动化部署：`.github/workflows/deploy-pages.yml`，推送到 `main` 后自动构建并发布到 GitHub Pages
+
+前置条件：
+
+1. GitHub Pages 对私有仓库需要 GitHub Pro/Team，免费账号请先将仓库设为 **public**；
+2. 仓库 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**；
+3. 如果修改了仓库名，无需改代码，工作流会自动使用 `/<仓库名>/` 作为前端 base 路径。
+
+Mock 数据与接口模拟代码位于 `ruoyi-vue3-rust-master/src/mock/`，通过 `VITE_APP_DEMO=true` 启用，不影响真实后端联调。
+
 ## 配置说明
 
 `backend/application.yml` 中仅保留占位符，运行时可用环境变量覆盖：
